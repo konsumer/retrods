@@ -1,0 +1,14 @@
+diff --git a/libgambatte/libretro/libretro.cpp b/libgambatte/libretro/libretro.cpp
+index 15b042c..181994c 100644
+--- a/libgambatte/libretro/libretro.cpp
++++ b/libgambatte/libretro/libretro.cpp
+@@ -1644,7 +1644,9 @@ enum SerialMode {
+    SERIAL_SERVER,
+    SERIAL_CLIENT
+ };
++#ifdef HAVE_NETWORK
+ static NetSerial gb_net_serial;
++#endif
+ static SerialMode gb_serialMode = SERIAL_NONE;
+ static int gb_NetworkPort = 12345;
+ static std::string gb_NetworkClientAddr;

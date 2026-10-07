@@ -1,0 +1,15 @@
+SPDX-License-Identifier: Zlib
+SPDX-FileNotice: retrods local patches, not part of upstream vice-libretro.
+
+1. 0001-disable-resid.patch
+   include/config.h turns on both reSID and FASTSID, and VICE's resolver picks
+   reSID for the default SidEngine. reSID's 6581 filter tables alone are 21 MiB
+   of .bss (opamp_rev[1<<16], gain[16][1<<16] and the summer/mixer offset
+   tables), which does not fit a DS or a DSi.
+
+2. 0002-sid-engine-fallback.patch
+   With reSID compiled out, an explicit request for it (the SID-engine option
+   still defaults to it) made set_sid_engine() return -1, so VICE silently kept
+   its dummy engine. Fall back to FASTSID instead.
+
+Applied with: patch -p1 < patches/vice-libretro/000N-*.patch

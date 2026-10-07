@@ -1,0 +1,1996 @@
+--- a/include/encodings/utf.h
++++ b/include/encodings/utf.h
+@@ -280,7 +280,7 @@
+  * The cache is a plain int with no interlock.  Two threads racing both
+  * call the same stub, compute the same value and store it; losing the
+  * race costs a second probe and nothing else. */
+-static INLINE int win32_needs_local_encoding(void)
++static __inline__ int win32_needs_local_encoding(void)
+ {
+    static int cached = -1;
+ 
+--- a/include/crypto/crypto.h
++++ b/include/crypto/crypto.h
+@@ -43,13 +43,13 @@
+  * needs to get right on secret data: comparing without an early exit,
+  * and clearing a buffer in a way the optimiser may not drop. */
+ 
+-static INLINE uint32_t crypto_load32_be(const uint8_t *p)
++static __inline__ uint32_t crypto_load32_be(const uint8_t *p)
+ {
+    return ((uint32_t)p[0] << 24) | ((uint32_t)p[1] << 16)
+         | ((uint32_t)p[2] <<  8) |  (uint32_t)p[3];
+ }
+ 
+-static INLINE void crypto_store32_be(uint8_t *p, uint32_t v)
++static __inline__ void crypto_store32_be(uint8_t *p, uint32_t v)
+ {
+    p[0] = (uint8_t)(v >> 24);
+    p[1] = (uint8_t)(v >> 16);
+@@ -57,24 +57,24 @@
+    p[3] = (uint8_t)(v);
+ }
+ 
+-static INLINE uint64_t crypto_load64_be(const uint8_t *p)
++static __inline__ uint64_t crypto_load64_be(const uint8_t *p)
+ {
+    return ((uint64_t)crypto_load32_be(p) << 32) | crypto_load32_be(p + 4);
+ }
+ 
+-static INLINE void crypto_store64_be(uint8_t *p, uint64_t v)
++static __inline__ void crypto_store64_be(uint8_t *p, uint64_t v)
+ {
+    crypto_store32_be(p,     (uint32_t)(v >> 32));
+    crypto_store32_be(p + 4, (uint32_t)(v));
+ }
+ 
+-static INLINE uint32_t crypto_load32_le(const uint8_t *p)
++static __inline__ uint32_t crypto_load32_le(const uint8_t *p)
+ {
+    return  (uint32_t)p[0]        | ((uint32_t)p[1] <<  8)
+         | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
+ }
+ 
+-static INLINE void crypto_store32_le(uint8_t *p, uint32_t v)
++static __inline__ void crypto_store32_le(uint8_t *p, uint32_t v)
+ {
+    p[0] = (uint8_t)(v);
+    p[1] = (uint8_t)(v >>  8);
+@@ -82,13 +82,13 @@
+    p[3] = (uint8_t)(v >> 24);
+ }
+ 
+-static INLINE void crypto_store64_le(uint8_t *p, uint64_t v)
++static __inline__ void crypto_store64_le(uint8_t *p, uint64_t v)
+ {
+    crypto_store32_le(p,     (uint32_t)(v));
+    crypto_store32_le(p + 4, (uint32_t)(v >> 32));
+ }
+ 
+-static INLINE uint32_t crypto_rotl32(uint32_t v, unsigned n)
++static __inline__ uint32_t crypto_rotl32(uint32_t v, unsigned n)
+ {
+    return (v << n) | (v >> (32 - n));
+ }
+--- a/include/compat/strl.h
++++ b/include/compat/strl.h
+@@ -96,7 +96,7 @@
+  * folds away and only one arm survives; with a runtime @p size it costs
+  * a comparison that predicts perfectly.
+  */
+-static INLINE size_t strlcpy_lit_(char *s, const char *lit,
++static __inline__ size_t strlcpy_lit_(char *s, const char *lit,
+       size_t lit_size, size_t len)
+ {
+    /* lit_size is sizeof() of a literal, so it is a constant at every
+--- a/include/compat/intrinsics.h
++++ b/include/compat/intrinsics.h
+@@ -45,7 +45,7 @@
+  * @param val Value to count leading zeroes in.
+  * @return Number of leading zeroes in \c val.
+  */
+-static INLINE unsigned compat_clz_u16(uint16_t val)
++static __inline__ unsigned compat_clz_u16(uint16_t val)
+ {
+ #if defined(__GNUC__)
+    return __builtin_clz(val << 16 | 0x8000);
+@@ -77,7 +77,7 @@
+  * @param val Value to count trailing zeroes in.
+  * @return Number of trailing zeroes in \c val.
+  */
+-static INLINE int compat_ctz(unsigned x)
++static __inline__ int compat_ctz(unsigned x)
+ {
+ #if defined(__GNUC__) && !defined(RARCH_CONSOLE)
+    return __builtin_ctz(x);
+@@ -120,7 +120,7 @@
+  * @param x Value to count leading zeroes in.
+  * @return Number of leading zeroes in \c x, and 32 for zero.
+  */
+-static INLINE uint32_t compat_clz_u32(uint32_t x)
++static __inline__ uint32_t compat_clz_u32(uint32_t x)
+ {
+ #if defined(__GNUC__) || defined(__clang__)
+    /* Both builtins leave a zero argument undefined, so it never
+@@ -154,7 +154,7 @@
+  * @param x Value to count leading zeroes in.
+  * @return Number of leading zeroes in \c x, and 64 for zero.
+  */
+-static INLINE uint32_t compat_clz_u64(uint64_t x)
++static __inline__ uint32_t compat_clz_u64(uint64_t x)
+ {
+ #if defined(__GNUC__) || defined(__clang__)
+    return x ? (uint32_t)__builtin_clzll(x) : 64u;
+@@ -185,7 +185,7 @@
+  * @param x Value to count trailing zeroes in.
+  * @return Number of trailing zeroes in \c x, and 64 for zero.
+  */
+-static INLINE uint32_t compat_ctz_u64(uint64_t x)
++static __inline__ uint32_t compat_ctz_u64(uint64_t x)
+ {
+ #if defined(__GNUC__) || defined(__clang__)
+    return x ? (uint32_t)__builtin_ctzll(x) : 64u;
+@@ -232,7 +232,7 @@
+  * @param x Value to inspect, which must not be zero.
+  * @return Index of the highest set bit, counting from zero.
+  */
+-static INLINE uint32_t compat_highbit_u32(uint32_t x)
++static __inline__ uint32_t compat_highbit_u32(uint32_t x)
+ {
+    return 31u - compat_clz_u32(x);
+ }
+--- a/include/net/net_compat.h
++++ b/include/net/net_compat.h
+@@ -439,7 +439,7 @@
+ 
+ #endif
+ 
+-static INLINE bool isagain(int val)
++static __inline__ bool isagain(int val)
+ {
+ #if defined(_WIN32)
+    return (val == SOCKET_ERROR) && (WSAGetLastError() == WSAEWOULDBLOCK);
+@@ -456,7 +456,7 @@
+ #endif
+ }
+ 
+-static INLINE bool isinprogress(int val)
++static __inline__ bool isinprogress(int val)
+ {
+ #if defined(_WIN32)
+    return (val == SOCKET_ERROR) && (WSAGetLastError() == WSAEWOULDBLOCK);
+--- a/include/net/net_smb2_compat.h
++++ b/include/net/net_smb2_compat.h
+@@ -77,7 +77,7 @@
+ #define SMB2_SEC_NTLMSSP   1
+ #define SMB2_SEC_KRB5      2
+ 
+-static INLINE struct smb2_context *smb2_init_context(void)
++static __inline__ struct smb2_context *smb2_init_context(void)
+ {
+    struct smb2_compat_ctx *x = (struct smb2_compat_ctx*)calloc(1, sizeof(*x));
+    if (!x)
+@@ -92,25 +92,25 @@
+ 
+ #define SMB2_CTX(ctx) (((struct smb2_compat_ctx*)(ctx))->c)
+ 
+-static INLINE void smb2_destroy_context(struct smb2_context *ctx)
++static __inline__ void smb2_destroy_context(struct smb2_context *ctx)
+ {
+    if (!ctx)
+       return;
+    rsmb_free(SMB2_CTX(ctx));
+    free(ctx);
+ }
+-static INLINE void smb2_set_user(struct smb2_context *ctx, const char *u)     { rsmb_set_user(SMB2_CTX(ctx), u); }
+-static INLINE void smb2_set_password(struct smb2_context *ctx, const char *p) { rsmb_set_password(SMB2_CTX(ctx), p); }
+-static INLINE void smb2_set_domain(struct smb2_context *ctx, const char *d)   { rsmb_set_domain(SMB2_CTX(ctx), d); }
+-static INLINE void smb2_set_timeout(struct smb2_context *ctx, int seconds)    { rsmb_set_timeout(SMB2_CTX(ctx), seconds > 0 ? (unsigned)seconds : 0); }
+-static INLINE void smb2_set_readahead(struct smb2_context *ctx, uint32_t bytes){ rsmb_set_readahead(SMB2_CTX(ctx), bytes); }
+-static INLINE void smb2_set_security_mode(struct smb2_context *ctx, int mode) { ((struct smb2_compat_ctx*)ctx)->auth_mode = mode; }
+-static INLINE void smb2_set_authentication(struct smb2_context *ctx, int mode){ ((struct smb2_compat_ctx*)ctx)->auth_mode = mode; }
++static __inline__ void smb2_set_user(struct smb2_context *ctx, const char *u)     { rsmb_set_user(SMB2_CTX(ctx), u); }
++static __inline__ void smb2_set_password(struct smb2_context *ctx, const char *p) { rsmb_set_password(SMB2_CTX(ctx), p); }
++static __inline__ void smb2_set_domain(struct smb2_context *ctx, const char *d)   { rsmb_set_domain(SMB2_CTX(ctx), d); }
++static __inline__ void smb2_set_timeout(struct smb2_context *ctx, int seconds)    { rsmb_set_timeout(SMB2_CTX(ctx), seconds > 0 ? (unsigned)seconds : 0); }
++static __inline__ void smb2_set_readahead(struct smb2_context *ctx, uint32_t bytes){ rsmb_set_readahead(SMB2_CTX(ctx), bytes); }
++static __inline__ void smb2_set_security_mode(struct smb2_context *ctx, int mode) { ((struct smb2_compat_ctx*)ctx)->auth_mode = mode; }
++static __inline__ void smb2_set_authentication(struct smb2_context *ctx, int mode){ ((struct smb2_compat_ctx*)ctx)->auth_mode = mode; }
+ 
+ /* The realm and KDC a KRB5 request uses (a libsmb2 build reads them
+  * from krb5.conf instead; this extension is guarded HAVE_RETROSMB by
+  * the caller). */
+-static INLINE void smb2_set_kerberos(struct smb2_context *ctx, const char *realm,
++static __inline__ void smb2_set_kerberos(struct smb2_context *ctx, const char *realm,
+       const char *kdc, uint16_t port)
+ {
+    struct smb2_compat_ctx *x = (struct smb2_compat_ctx*)ctx;
+@@ -123,7 +123,7 @@
+  * really came from a ticket, so a pool that tries Kerberos first
+  * records the truth and its NTLMSSP attempt still runs; an NTLMSSP
+  * request never touches the KDC. */
+-static INLINE int smb2_connect_share(struct smb2_context *ctx, const char *server,
++static __inline__ int smb2_connect_share(struct smb2_context *ctx, const char *server,
+       const char *share, const char *user)
+ {
+    struct smb2_compat_ctx *x = (struct smb2_compat_ctx*)ctx;
+@@ -145,12 +145,12 @@
+    rsmb_set_kerberos(x->c, NULL, NULL, 0);
+    return rsmb_connect(x->c, server, share);
+ }
+-static INLINE int  smb2_disconnect_share(struct smb2_context *ctx) { rsmb_disconnect(SMB2_CTX(ctx)); return 0; }
+-static INLINE int  smb2_context_active(struct smb2_context *ctx)   { return rsmb_get_fd(SMB2_CTX(ctx)) >= 0; }
+-static INLINE int  smb2_echo(struct smb2_context *ctx)             { return rsmb_echo(SMB2_CTX(ctx)); }
+-static INLINE const char *smb2_get_error(struct smb2_context *ctx) { return rsmb_get_error(SMB2_CTX(ctx)); }
++static __inline__ int  smb2_disconnect_share(struct smb2_context *ctx) { rsmb_disconnect(SMB2_CTX(ctx)); return 0; }
++static __inline__ int  smb2_context_active(struct smb2_context *ctx)   { return rsmb_get_fd(SMB2_CTX(ctx)) >= 0; }
++static __inline__ int  smb2_echo(struct smb2_context *ctx)             { return rsmb_echo(SMB2_CTX(ctx)); }
++static __inline__ const char *smb2_get_error(struct smb2_context *ctx) { return rsmb_get_error(SMB2_CTX(ctx)); }
+ 
+-static INLINE struct smb2fh *smb2_open(struct smb2_context *ctx, const char *path, int flags)
++static __inline__ struct smb2fh *smb2_open(struct smb2_context *ctx, const char *path, int flags)
+ {
+    int rf = 0;
+    if ((flags & O_ACCMODE) == O_WRONLY) rf = RSMB_O_WRONLY;
+@@ -159,17 +159,17 @@
+    if (flags & O_TRUNC) rf |= RSMB_O_TRUNC;
+    return (struct smb2fh*)(void*)rsmb_open(SMB2_CTX(ctx), path, rf);
+ }
+-static INLINE int smb2_read(struct smb2_context *ctx, struct smb2fh *fh, uint8_t *buf, uint32_t len)
++static __inline__ int smb2_read(struct smb2_context *ctx, struct smb2fh *fh, uint8_t *buf, uint32_t len)
+ {
+    int64_t r = rsmb_read(SMB2_CTX(ctx), SMB2_FH(fh), buf, len);
+    return r < 0 ? -1 : (int)r;
+ }
+-static INLINE int smb2_write(struct smb2_context *ctx, struct smb2fh *fh, const uint8_t *buf, uint32_t len)
++static __inline__ int smb2_write(struct smb2_context *ctx, struct smb2fh *fh, const uint8_t *buf, uint32_t len)
+ {
+    int64_t r = rsmb_write(SMB2_CTX(ctx), SMB2_FH(fh), buf, len);
+    return r < 0 ? -1 : (int)r;
+ }
+-static INLINE int64_t smb2_lseek(struct smb2_context *ctx, struct smb2fh *fh,
++static __inline__ int64_t smb2_lseek(struct smb2_context *ctx, struct smb2fh *fh,
+       int64_t offset, int whence, uint64_t *current_offset)
+ {
+    /* libsmb2 reports failure as -EINVAL, which the VFS tests for. */
+@@ -181,7 +181,7 @@
+       *current_offset = (uint64_t)r;
+    return r;
+ }
+-static INLINE int smb2_close(struct smb2_context *ctx, struct smb2fh *fh)
++static __inline__ int smb2_close(struct smb2_context *ctx, struct smb2fh *fh)
+ {
+    int r;
+    if (!fh)
+@@ -189,13 +189,13 @@
+    r = rsmb_close(SMB2_CTX(ctx), SMB2_FH(fh));
+    return r;
+ }
+-static INLINE int smb2_ftruncate(struct smb2_context *ctx, struct smb2fh *fh, uint64_t size)
++static __inline__ int smb2_ftruncate(struct smb2_context *ctx, struct smb2fh *fh, uint64_t size)
+ {
+    return rsmb_ftruncate(SMB2_CTX(ctx), SMB2_FH(fh), size);
+ }
+-static INLINE uint32_t smb2_get_max_read_size(struct smb2_context *ctx)  { return rsmb_max_read(SMB2_CTX(ctx)); }
+-static INLINE uint32_t smb2_get_max_write_size(struct smb2_context *ctx) { return rsmb_max_write(SMB2_CTX(ctx)); }
+-static INLINE int smb2_stat(struct smb2_context *ctx, const char *path, struct smb2_stat_64 *st)
++static __inline__ uint32_t smb2_get_max_read_size(struct smb2_context *ctx)  { return rsmb_max_read(SMB2_CTX(ctx)); }
++static __inline__ uint32_t smb2_get_max_write_size(struct smb2_context *ctx) { return rsmb_max_write(SMB2_CTX(ctx)); }
++static __inline__ int smb2_stat(struct smb2_context *ctx, const char *path, struct smb2_stat_64 *st)
+ {
+    struct rsmb_stat rs;
+    if (rsmb_stat(SMB2_CTX(ctx), path, &rs) != 0)
+@@ -205,11 +205,11 @@
+    st->smb2_mtime = rs.mtime;
+    return 0;
+ }
+-static INLINE int smb2_unlink(struct smb2_context *ctx, const char *path)  { return rsmb_unlink(SMB2_CTX(ctx), path); }
+-static INLINE int smb2_mkdir(struct smb2_context *ctx, const char *path)   { return rsmb_mkdir(SMB2_CTX(ctx), path); }
+-static INLINE int smb2_rename(struct smb2_context *ctx, const char *a, const char *b) { return rsmb_rename(SMB2_CTX(ctx), a, b); }
++static __inline__ int smb2_unlink(struct smb2_context *ctx, const char *path)  { return rsmb_unlink(SMB2_CTX(ctx), path); }
++static __inline__ int smb2_mkdir(struct smb2_context *ctx, const char *path)   { return rsmb_mkdir(SMB2_CTX(ctx), path); }
++static __inline__ int smb2_rename(struct smb2_context *ctx, const char *a, const char *b) { return rsmb_rename(SMB2_CTX(ctx), a, b); }
+ 
+-static INLINE struct smb2dir *smb2_opendir(struct smb2_context *ctx, const char *path)
++static __inline__ struct smb2dir *smb2_opendir(struct smb2_context *ctx, const char *path)
+ {
+    struct smb2dir *d = (struct smb2dir*)calloc(1, sizeof(*d));
+    if (!d)
+@@ -221,7 +221,7 @@
+    }
+    return d;
+ }
+-static INLINE struct smb2dirent *smb2_readdir(struct smb2_context *ctx, struct smb2dir *d)
++static __inline__ struct smb2dirent *smb2_readdir(struct smb2_context *ctx, struct smb2dir *d)
+ {
+    const struct rsmb_dirent *e = rsmb_readdir(SMB2_CTX(ctx), d->d);
+    if (!e)
+@@ -232,7 +232,7 @@
+    d->ent.st.smb2_mtime = e->st.mtime;
+    return &d->ent;
+ }
+-static INLINE void smb2_closedir(struct smb2_context *ctx, struct smb2dir *d)
++static __inline__ void smb2_closedir(struct smb2_context *ctx, struct smb2dir *d)
+ {
+    if (!d)
+       return;
+--- a/include/retro_timers.h
++++ b/include/retro_timers.h
+@@ -141,7 +141,7 @@
+ }
+ #endif
+ #else
+-static INLINE void retro_sleep(unsigned msec)
++static __inline__ void retro_sleep(unsigned msec)
+ {
+    struct timespec tv;
+    tv.tv_sec          = msec / 1000;
+@@ -192,7 +192,7 @@
+ #elif defined(__EMSCRIPTEN__)
+ #define retro_sleep_us(usec) (retro_sleep(((usec) + 500) / 1000))
+ #else
+-static INLINE void retro_sleep_us(unsigned usec)
++static __inline__ void retro_sleep_us(unsigned usec)
+ {
+    struct timespec tv;
+    tv.tv_sec          = usec / 1000000;
+--- a/include/formats/rxml_stream.h
++++ b/include/formats/rxml_stream.h
+@@ -57,7 +57,7 @@
+  * Pass RXML_OPT_STRICT_EOF here to reject a truncated file outright
+  * rather than take the partial tree - what a caller loading an asset
+  * off a user-writable filesystem generally wants. */
+-static INLINE rxml_document_t *rxml_load_document_filestream_opts(
++static __inline__ rxml_document_t *rxml_load_document_filestream_opts(
+       const char *path, unsigned opts, rxml_parse_error_t *err)
+ {
+    char *memory_buffer     = NULL;
+@@ -101,7 +101,7 @@
+ }
+ 
+ /* rxml_load_document_filestream_opts() with no options. */
+-static INLINE rxml_document_t *rxml_load_document_filestream(
++static __inline__ rxml_document_t *rxml_load_document_filestream(
+       const char *path)
+ {
+    return rxml_load_document_filestream_opts(path, 0, NULL);
+--- a/include/formats/rm3u_stream.h
++++ b/include/formats/rm3u_stream.h
+@@ -60,7 +60,7 @@
+  * non-zero size exists there.  The old semantics of the codec's
+  * is-m3u check, in a single stat: a missing file has no size, so
+  * one path_get_size() answers existence and emptiness at once. */
+-static INLINE bool rm3u_is_m3u_filestream(const char *path)
++static __inline__ bool rm3u_is_m3u_filestream(const char *path)
+ {
+    if (!rm3u_is_m3u(path))
+       return false;
+@@ -73,7 +73,7 @@
+  * - a missing file yields an empty handle (success)
+  * - a read or parse failure yields NULL
+  * - Returned rm3u_t object must be free'd using rm3u_free() */
+-static INLINE rm3u_t *rm3u_load_filestream(const char *path)
++static __inline__ rm3u_t *rm3u_load_filestream(const char *path)
+ {
+    rm3u_t *m3u       = NULL;
+    uint8_t *file_buf = NULL;
+@@ -119,7 +119,7 @@
+ 
+ /* Renders and writes the M3U file to its path in a single write.
+  * - Returns false in the event of an error */
+-static INLINE bool rm3u_save_filestream(rm3u_t *m3u,
++static __inline__ bool rm3u_save_filestream(rm3u_t *m3u,
+       enum rm3u_label_type label_type)
+ {
+    RFILE *file   = NULL;
+--- a/include/formats/rjson_helpers.h
++++ b/include/formats/rjson_helpers.h
+@@ -31,46 +31,46 @@
+ RETRO_BEGIN_DECLS
+ 
+ /* Functions to add JSON token characters */
+-static INLINE void rjsonwriter_add_start_object(rjsonwriter_t *writer)
++static __inline__ void rjsonwriter_add_start_object(rjsonwriter_t *writer)
+       { rjsonwriter_raw(writer, "{", 1); }
+ 
+-static INLINE void rjsonwriter_add_end_object(rjsonwriter_t *writer)
++static __inline__ void rjsonwriter_add_end_object(rjsonwriter_t *writer)
+       { rjsonwriter_raw(writer, "}", 1); }
+ 
+-static INLINE void rjsonwriter_add_start_array(rjsonwriter_t *writer)
++static __inline__ void rjsonwriter_add_start_array(rjsonwriter_t *writer)
+       { rjsonwriter_raw(writer, "[", 1); }
+ 
+-static INLINE void rjsonwriter_add_end_array(rjsonwriter_t *writer)
++static __inline__ void rjsonwriter_add_end_array(rjsonwriter_t *writer)
+       { rjsonwriter_raw(writer, "]", 1); }
+ 
+-static INLINE void rjsonwriter_add_colon(rjsonwriter_t *writer)
++static __inline__ void rjsonwriter_add_colon(rjsonwriter_t *writer)
+       { rjsonwriter_raw(writer, ":", 1); }
+ 
+-static INLINE void rjsonwriter_add_comma(rjsonwriter_t *writer)
++static __inline__ void rjsonwriter_add_comma(rjsonwriter_t *writer)
+       { rjsonwriter_raw(writer, ",", 1); }
+ 
+ /* Functions to add whitespace characters */
+ /* These do nothing with the option RJSONWRITER_OPTION_SKIP_WHITESPACE */
+-static INLINE void rjsonwriter_add_newline(rjsonwriter_t *writer)
++static __inline__ void rjsonwriter_add_newline(rjsonwriter_t *writer)
+       { rjsonwriter_raw(writer, "\n", 1); }
+ 
+-static INLINE void rjsonwriter_add_space(rjsonwriter_t *writer)
++static __inline__ void rjsonwriter_add_space(rjsonwriter_t *writer)
+       { rjsonwriter_raw(writer, " ", 1); }
+ 
+-static INLINE void rjsonwriter_add_tab(rjsonwriter_t *writer)
++static __inline__ void rjsonwriter_add_tab(rjsonwriter_t *writer)
+       { rjsonwriter_raw(writer, "\t", 1); }
+ 
+-static INLINE void rjsonwriter_add_unsigned(rjsonwriter_t *writer, unsigned value)
++static __inline__ void rjsonwriter_add_unsigned(rjsonwriter_t *writer, unsigned value)
+       { rjsonwriter_rawf(writer, "%u", value); }
+ 
+ /* Add a signed or unsigned integer or a double number */
+-static INLINE void rjsonwriter_add_int(rjsonwriter_t *writer, int value)
++static __inline__ void rjsonwriter_add_int(rjsonwriter_t *writer, int value)
+       { rjsonwriter_rawf(writer, "%d", value); }
+ 
+-static INLINE void rjsonwriter_add_bool(rjsonwriter_t *writer, bool value)
++static __inline__ void rjsonwriter_add_bool(rjsonwriter_t *writer, bool value)
+       { rjsonwriter_raw(writer, (value ? "true" : "false"), (value ? 4 : 5)); }
+ 
+-static INLINE void rjsonwriter_add_null(rjsonwriter_t *writer)
++static __inline__ void rjsonwriter_add_null(rjsonwriter_t *writer)
+       { rjsonwriter_raw(writer, "null", 4); }
+ 
+ RETRO_END_DECLS
+--- a/include/formats/rjson_stream.h
++++ b/include/formats/rjson_stream.h
+@@ -52,29 +52,29 @@
+  * size the way rjson always did: larger files read through larger
+  * blocks. */
+ 
+-static INLINE int rjson_intfstream_io(void *buf, int len, void *user)
++static __inline__ int rjson_intfstream_io(void *buf, int len, void *user)
+ {
+    return (int)intfstream_read((intfstream_t*)user, buf, (uint64_t)len);
+ }
+ 
+-static INLINE int rjson_stream_io_size(int64_t size)
++static __inline__ int rjson_stream_io_size(int64_t size)
+ {
+    return (size > 1024 * 1024 ? 4096 :
+           (size >  256 * 1024 ? 2048 : 1024));
+ }
+ 
+-static INLINE rjson_t *rjson_open_intfstream(intfstream_t *stream)
++static __inline__ rjson_t *rjson_open_intfstream(intfstream_t *stream)
+ {
+    return rjson_open_user(rjson_intfstream_io, stream,
+          rjson_stream_io_size(intfstream_get_size(stream)));
+ }
+ 
+-static INLINE int rjson_filestream_io(void *buf, int len, void *user)
++static __inline__ int rjson_filestream_io(void *buf, int len, void *user)
+ {
+    return (int)filestream_read((RFILE*)user, buf, (int64_t)len);
+ }
+ 
+-static INLINE rjson_t *rjson_open_filestream(RFILE *file)
++static __inline__ rjson_t *rjson_open_filestream(RFILE *file)
+ {
+    return rjson_open_user(rjson_filestream_io, file,
+          rjson_stream_io_size(filestream_get_size(file)));
+@@ -82,25 +82,25 @@
+ 
+ /* Writer adapters. */
+ 
+-static INLINE int rjsonwriter_intfstream_io(const void *buf, int len,
++static __inline__ int rjsonwriter_intfstream_io(const void *buf, int len,
+       void *user)
+ {
+    return (int)intfstream_write((intfstream_t*)user, buf, (uint64_t)len);
+ }
+ 
+-static INLINE rjsonwriter_t *rjsonwriter_open_intfstream(
++static __inline__ rjsonwriter_t *rjsonwriter_open_intfstream(
+       intfstream_t *stream)
+ {
+    return rjsonwriter_open_user(rjsonwriter_intfstream_io, stream);
+ }
+ 
+-static INLINE int rjsonwriter_filestream_io(const void *buf, int len,
++static __inline__ int rjsonwriter_filestream_io(const void *buf, int len,
+       void *user)
+ {
+    return (int)filestream_write((RFILE*)user, buf, (int64_t)len);
+ }
+ 
+-static INLINE rjsonwriter_t *rjsonwriter_open_filestream(RFILE *file)
++static __inline__ rjsonwriter_t *rjsonwriter_open_filestream(RFILE *file)
+ {
+    return rjsonwriter_open_user(rjsonwriter_filestream_io, file);
+ }
+--- a/include/formats/rwav.h
++++ b/include/formats/rwav.h
+@@ -37,7 +37,7 @@
+  * big-endian host and safe where an unaligned load would fault. A data
+  * chunk is only guaranteed even-aligned, so a float sample in one is
+  * not necessarily four-aligned. */
+-static INLINE int16_t rwav_s16(const uint8_t *p)
++static __inline__ int16_t rwav_s16(const uint8_t *p)
+ {
+ #ifndef MSB_FIRST
+    /* file order is host order: a two-byte load, which the memcpy
+@@ -51,7 +51,7 @@
+ #endif
+ }
+ 
+-static INLINE float rwav_f32(const uint8_t *p)
++static __inline__ float rwav_f32(const uint8_t *p)
+ {
+ #ifndef MSB_FIRST
+    float f;
+@@ -68,7 +68,7 @@
+ /* One 24-bit sample: three little-endian bytes, sign-extended. There is
+  * no host type of that width, so rwav_load hands 24-bit data over
+  * packed and it is read through these in either case. */
+-static INLINE int32_t rwav_s24(const uint8_t *p)
++static __inline__ int32_t rwav_s24(const uint8_t *p)
+ {
+    uint32_t u = (uint32_t)p[0] | ((uint32_t)p[1] << 8)
+               | ((uint32_t)p[2] << 16);
+@@ -78,7 +78,7 @@
+ /* Rounded to 16 bits, saturating. Biased to unsigned first so that
+  * neither the rounding nor the shift is applied to a negative value,
+  * both being implementation-defined there. */
+-static INLINE int16_t rwav_s24_to_s16(const uint8_t *p)
++static __inline__ int16_t rwav_s24_to_s16(const uint8_t *p)
+ {
+    uint32_t u = ((uint32_t)p[0] | ((uint32_t)p[1] << 8)
+               | ((uint32_t)p[2] << 16)) ^ 0x800000u;
+@@ -89,7 +89,7 @@
+ }
+ 
+ /* At the same unit scale the 16-bit and float paths use. */
+-static INLINE float rwav_s24_to_float(const uint8_t *p)
++static __inline__ float rwav_s24_to_float(const uint8_t *p)
+ {
+    return (float)rwav_s24(p) * (1.0f / 8388608.0f);
+ }
+--- a/include/retro_math.h
++++ b/include/retro_math.h
+@@ -68,7 +68,7 @@
+  *
+  * Returns: next power of 2 value (derived from @v).
+  **/
+-static INLINE uint32_t next_pow2(uint32_t v)
++static __inline__ uint32_t next_pow2(uint32_t v)
+ {
+    v--;
+    v |= v >> 1;
+@@ -88,7 +88,7 @@
+  *
+  * Returns: previous power of 2 value (derived from @v).
+  **/
+-static INLINE uint32_t prev_pow2(uint32_t v)
++static __inline__ uint32_t prev_pow2(uint32_t v)
+ {
+    v |= v >> 1;
+    v |= v >> 2;
+@@ -106,7 +106,7 @@
+  *
+  * Returns: clamped value (derived from @v).
+  **/
+-static INLINE float clamp_value(float v, float min, float max)
++static __inline__ float clamp_value(float v, float min, float max)
+ {
+    return v <= min ? min : v >= max ? max : v;
+ }
+@@ -119,7 +119,7 @@
+  *
+  * Returns: clamped 0.0-1.0 value (derived from @v).
+  **/
+-static INLINE float saturate_value(float v)
++static __inline__ float saturate_value(float v)
+ {
+    return clamp_value(v, 0.0f, 1.0f);
+ }
+@@ -133,7 +133,7 @@
+  *
+  * Returns: dot product value (derived from @a and @b).
+  **/
+-static INLINE float dot_product(const float* a, const float* b)
++static __inline__ float dot_product(const float* a, const float* b)
+ {
+    return (a[0] * b[0]) + (a[1] * b[1]) + (a[2] * b[2]);
+ }
+@@ -147,7 +147,7 @@
+  *
+  * Returns: Yxy colour space value (derived from @rgb).
+  **/
+-static INLINE void convert_rgb_to_yxy(const float* rgb, float* Yxy)
++static __inline__ void convert_rgb_to_yxy(const float* rgb, float* Yxy)
+ {
+    float inv;
+    float xyz[3];
+@@ -177,7 +177,7 @@
+  *
+  * Returns: rgb colour space value (derived from @Yxy).
+  **/
+-static INLINE void convert_yxy_to_rgb(const float* Yxy, float* rgb)
++static __inline__ void convert_yxy_to_rgb(const float* Yxy, float* rgb)
+ {
+    float xyz[3];
+    float xyz_rgb[3][3] = {
+@@ -202,7 +202,7 @@
+  *
+  * @return unsigned random value between \c min and \c max (inclusive).
+  */
+-static INLINE size_t random_range(unsigned min, unsigned max)
++static __inline__ size_t random_range(unsigned min, unsigned max)
+ {
+    return (min == max) ? min : (size_t)((float)rand() / (float)RAND_MAX * (max + 1 - min) + min);
+ }
+--- a/include/fastcpy.h
++++ b/include/fastcpy.h
+@@ -25,17 +25,17 @@
+ #include <string.h>
+ #include <retro_inline.h>
+ 
+-static INLINE void* memcpy16(void* dst, void* src, size_t len)
++static __inline__ void* memcpy16(void* dst, void* src, size_t len)
+ {
+    return memcpy(dst, src, len * 2);
+ }
+ 
+-static INLINE void* memcpy32(void* dst, void* src, size_t len)
++static __inline__ void* memcpy32(void* dst, void* src, size_t len)
+ {
+    return memcpy(dst, src, len * 4);
+ }
+ 
+-static INLINE void* memcpy64(void* dst, void* src, size_t len)
++static __inline__ void* memcpy64(void* dst, void* src, size_t len)
+ {
+    return memcpy(dst, src, len * 8);
+ }
+@@ -43,28 +43,28 @@
+ #ifdef USECPPSTDFILL
+ #include <algorithm>
+ 
+-static INLINE void* memset16(void* dst,uint16_t val, size_t len)
++static __inline__ void* memset16(void* dst,uint16_t val, size_t len)
+ {
+    uint16_t *typedptr = (uint16_t*)dst;
+    std::fill(typedptr, typedptr + len, val);
+    return dst;
+ }
+ 
+-static INLINE void* memset32(void* dst, uint32_t val, size_t len)
++static __inline__ void* memset32(void* dst, uint32_t val, size_t len)
+ {
+    uint32_t *typedptr = (uint32_t*)dst;
+    std::fill(typedptr, typedptr + len, val);
+    return dst;
+ }
+ 
+-static INLINE void* memset64(void* dst, uint64_t val, size_t len)
++static __inline__ void* memset64(void* dst, uint64_t val, size_t len)
+ {
+    uint64_t *typedptr = (uint64_t*)dst;
+    std::fill(typedptr, typedptr + len, val);
+    return dst;
+ }
+ #else
+-static INLINE void *memset16(void* dst, uint16_t val, size_t len)
++static __inline__ void *memset16(void* dst, uint16_t val, size_t len)
+ {
+    size_t i;
+    uint16_t *typedptr = (uint16_t*)dst;
+@@ -73,7 +73,7 @@
+    return dst;
+ }
+ 
+-static INLINE void *memset32(void* dst, uint32_t val, size_t len)
++static __inline__ void *memset32(void* dst, uint32_t val, size_t len)
+ {
+    size_t i;
+    uint32_t *typedptr = (uint32_t*)dst;
+@@ -82,7 +82,7 @@
+    return dst;
+ }
+ 
+-static INLINE void *memset64(void* dst, uint64_t val, size_t len)
++static __inline__ void *memset64(void* dst, uint64_t val, size_t len)
+ {
+    size_t i;
+    uint64_t *typedptr = (uint64_t*)dst;
+--- a/include/libchdr/cdrom.h
++++ b/include/libchdr/cdrom.h
+@@ -72,12 +72,12 @@
+     INLINE FUNCTIONS
+ ***************************************************************************/
+ 
+-static INLINE uint32_t msf_to_lba(uint32_t msf)
++static __inline__ uint32_t msf_to_lba(uint32_t msf)
+ {
+ 	return ( ((msf&0x00ff0000)>>16) * 60 * 75) + (((msf&0x0000ff00)>>8) * 75) + ((msf&0x000000ff)>>0);
+ }
+ 
+-static INLINE uint32_t lba_to_msf(uint32_t lba)
++static __inline__ uint32_t lba_to_msf(uint32_t lba)
+ {
+ 	uint8_t m, s, f;
+ 
+@@ -96,7 +96,7 @@
+  * Angelo also says PCE tracks often start playing at the
+  * wrong address.. related?
+  **/
+-static INLINE uint32_t lba_to_msf_alt(int lba)
++static __inline__ uint32_t lba_to_msf_alt(int lba)
+ {
+ 	uint32_t ret = 0;
+ 
+--- a/include/libchdr/coretypes.h
++++ b/include/libchdr/coretypes.h
+@@ -55,19 +55,19 @@
+ 	int (*fseek)(struct chd_core_file*, int64_t, int);
+ } core_file;
+ 
+-static INLINE int core_fclose(core_file *fp) {
++static __inline__ int core_fclose(core_file *fp) {
+ 	return fp->fclose(fp);
+ }
+ 
+-static INLINE size_t core_fread(core_file *fp, void *ptr, size_t len) {
++static __inline__ size_t core_fread(core_file *fp, void *ptr, size_t len) {
+ 	return fp->fread(ptr, 1, len, fp);
+ }
+ 
+-static INLINE int core_fseek(core_file* fp, int64_t offset, int whence) {
++static __inline__ int core_fseek(core_file* fp, int64_t offset, int whence) {
+ 	return fp->fseek(fp, offset, whence);
+ }
+ 
+-static INLINE uint64_t core_fsize(core_file *fp)
++static __inline__ uint64_t core_fsize(core_file *fp)
+ {
+ 	return fp->fsize(fp);
+ }
+--- a/include/retro_miscellaneous.h
++++ b/include/retro_miscellaneous.h
+@@ -73,7 +73,7 @@
+  * @param b[in] The second bit array.
+  * @param count The length of each bit array, in 32-bit words.
+  */
+-static INLINE void bits_or_bits(uint32_t *a, uint32_t *b, uint32_t count)
++static __inline__ void bits_or_bits(uint32_t *a, uint32_t *b, uint32_t count)
+ {
+    uint32_t i;
+    for (i = 0; i < count;i++)
+@@ -88,7 +88,7 @@
+  * @param count The length of each bit array, in 32-bit words
+  * (\em not bits or bytes).
+  */
+-static INLINE void bits_clear_bits(uint32_t *a, uint32_t *b, uint32_t count)
++static __inline__ void bits_clear_bits(uint32_t *a, uint32_t *b, uint32_t count)
+ {
+    uint32_t i;
+    for (i = 0; i < count;i++)
+@@ -104,7 +104,7 @@
+  * @return \c true if any bit in \c ptr is set,
+  * \c false if all bits are clear (zero).
+  */
+-static INLINE bool bits_any_set(uint32_t* ptr, uint32_t count)
++static __inline__ bool bits_any_set(uint32_t* ptr, uint32_t count)
+ {
+    uint32_t i;
+    for (i = 0; i < count; i++)
+@@ -125,7 +125,7 @@
+  * @return \c true if \c and \c differ by at least one bit,
+  * \c false if they're both identical.
+  */
+-static INLINE bool bits_any_different(uint32_t *a, uint32_t *b, uint32_t count)
++static __inline__ bool bits_any_different(uint32_t *a, uint32_t *b, uint32_t count)
+ {
+    uint32_t i;
+    for (i = 0; i < count; i++)
+--- a/include/clamping.h
++++ b/include/clamping.h
+@@ -35,7 +35,7 @@
+  *
+  * @returns \c val clamped to between \c lower and \c upper (inclusive).
+  */
+-static INLINE float clamp_float(float val, float lower, float upper)
++static __inline__ float clamp_float(float val, float lower, float upper)
+ {
+    if (val < lower)
+       return lower;
+@@ -50,7 +50,7 @@
+  * @param val The value to clamp.
+  * @return \c val clamped to between 0 and 255 (inclusive).
+  */
+-static INLINE uint8_t clamp_8bit(int val)
++static __inline__ uint8_t clamp_8bit(int val)
+ {
+    if (val > 255)
+       return 255;
+--- a/include/math/float_minmax.h
++++ b/include/math/float_minmax.h
+@@ -34,7 +34,7 @@
+ #include <mmintrin.h>
+ #endif
+ 
+-static INLINE float float_min(float a, float b)
++static __inline__ float float_min(float a, float b)
+ {
+ #ifdef __SSE2__
+    _mm_store_ss( &a, _mm_min_ss(_mm_set_ss(a),_mm_set_ss(b)) );
+@@ -46,7 +46,7 @@
+ #endif
+ }
+ 
+-static INLINE float float_max(float a, float b)
++static __inline__ float float_max(float a, float b)
+ {
+ #ifdef __SSE2__
+    _mm_store_ss( &a, _mm_max_ss(_mm_set_ss(a),_mm_set_ss(b)) );
+--- a/include/math/fxp.h
++++ b/include/math/fxp.h
+@@ -31,7 +31,7 @@
+ 
+ #include <retro_inline.h>
+ 
+-static INLINE int64_t fx32_mul(const int32_t a, const int32_t b)
++static __inline__ int64_t fx32_mul(const int32_t a, const int32_t b)
+ {
+ #ifdef _MSC_VER
+    return __emul(a, b);
+@@ -40,7 +40,7 @@
+ #endif
+ }
+ 
+-static INLINE int32_t fx32_shiftdown(const int64_t a)
++static __inline__ int32_t fx32_shiftdown(const int64_t a)
+ {
+ #ifdef _MSC_VER
+ 	return (int32_t)__ll_rshift(a, 12);
+@@ -49,7 +49,7 @@
+ #endif
+ }
+ 
+-static INLINE int64_t fx32_shiftup(const int32_t a)
++static __inline__ int64_t fx32_shiftup(const int32_t a)
+ {
+ #ifdef _MSC_VER
+ 	return __ll_lshift(a, 12);
+--- a/include/math/complex.h
++++ b/include/math/complex.h
+@@ -32,7 +32,7 @@
+    float imag;
+ } fft_complex_t;
+ 
+-static INLINE fft_complex_t fft_complex_mul(fft_complex_t a,
++static __inline__ fft_complex_t fft_complex_mul(fft_complex_t a,
+       fft_complex_t b)
+ {
+    fft_complex_t out;
+@@ -43,7 +43,7 @@
+ 
+ }
+ 
+-static INLINE fft_complex_t fft_complex_add(fft_complex_t a,
++static __inline__ fft_complex_t fft_complex_add(fft_complex_t a,
+       fft_complex_t b)
+ {
+    fft_complex_t out;
+@@ -54,7 +54,7 @@
+ 
+ }
+ 
+-static INLINE fft_complex_t fft_complex_sub(fft_complex_t a,
++static __inline__ fft_complex_t fft_complex_sub(fft_complex_t a,
+       fft_complex_t b)
+ {
+    fft_complex_t out;
+@@ -65,7 +65,7 @@
+ 
+ }
+ 
+-static INLINE fft_complex_t fft_complex_conj(fft_complex_t a)
++static __inline__ fft_complex_t fft_complex_conj(fft_complex_t a)
+ {
+    fft_complex_t out;
+    out.real = a.real;
+--- a/include/audio/wsola_search.h
++++ b/include/audio/wsola_search.h
+@@ -52,7 +52,7 @@
+       unsigned, double);
+ 
+ /* floor(sqrt(v)) for a 64-bit value, bit by bit. */
+-static INLINE uint64_t wsola_isqrt64(uint64_t v)
++static __inline__ uint64_t wsola_isqrt64(uint64_t v)
+ {
+    uint64_t r   = 0;
+    uint64_t bit = (uint64_t)1 << 62;
+@@ -149,7 +149,7 @@
+ /* Inputs are stereo int16 sums (absolute value <= 65536), n <= 4096.
+  * The reference energy is common to every candidate, so candidates
+  * rank by dot / sqrt(candidate energy), in Q16. */
+-static INLINE int64_t wsola_corr_i(const int32_t *a, const int32_t *b, unsigned n)
++static __inline__ int64_t wsola_corr_i(const int32_t *a, const int32_t *b, unsigned n)
+ {
+    unsigned i;
+    int64_t dot  = 0;
+@@ -165,7 +165,7 @@
+ }
+ 
+ /* Select once per instance; candidate loops call the selected kernel. */
+-static INLINE wsola_corr_func_t wsola_corr_get(enum wsola_simd simd)
++static __inline__ wsola_corr_func_t wsola_corr_get(enum wsola_simd simd)
+ {
+ #if WSOLA_HAVE_SSE2
+    if (simd == WSOLA_SIMD_SSE2)
+--- a/include/queues/mpsc_stack.h
++++ b/include/queues/mpsc_stack.h
+@@ -55,14 +55,14 @@
+    retro_atomic_ptr_t head;
+ } mpsc_stack_t;
+ 
+-static INLINE void mpsc_stack_init(mpsc_stack_t *stack)
++static __inline__ void mpsc_stack_init(mpsc_stack_t *stack)
+ {
+    retro_atomic_ptr_init(&stack->head, NULL);
+ }
+ 
+ /* Any thread. The node's payload must be written before the push;
+  * the compare-exchange publishes it. */
+-static INLINE void mpsc_stack_push(mpsc_stack_t *stack,
++static __inline__ void mpsc_stack_push(mpsc_stack_t *stack,
+       mpsc_stack_node_t *node)
+ {
+    do
+@@ -74,14 +74,14 @@
+ 
+ /* True when a drain would return nothing: the consumer's cheap
+  * per-iteration probe. */
+-static INLINE bool mpsc_stack_empty(mpsc_stack_t *stack)
++static __inline__ bool mpsc_stack_empty(mpsc_stack_t *stack)
+ {
+    return !retro_atomic_load_acquire_ptr(&stack->head);
+ }
+ 
+ /* The consumer. Takes the whole chain, newest-first; the caller walks
+  * or reverses it. */
+-static INLINE mpsc_stack_node_t *mpsc_stack_drain(mpsc_stack_t *stack)
++static __inline__ mpsc_stack_node_t *mpsc_stack_drain(mpsc_stack_t *stack)
+ {
+    return (mpsc_stack_node_t *)
+          retro_atomic_exchange_ptr(&stack->head, NULL);
+@@ -99,24 +99,24 @@
+    mpsc_stack_node_t * volatile head;
+ } mpsc_stack_t;
+ 
+-static INLINE void mpsc_stack_init(mpsc_stack_t *stack)
++static __inline__ void mpsc_stack_init(mpsc_stack_t *stack)
+ {
+    stack->head = NULL;
+ }
+ 
+-static INLINE void mpsc_stack_push(mpsc_stack_t *stack,
++static __inline__ void mpsc_stack_push(mpsc_stack_t *stack,
+       mpsc_stack_node_t *node)
+ {
+    node->next  = stack->head;
+    stack->head = node;
+ }
+ 
+-static INLINE bool mpsc_stack_empty(mpsc_stack_t *stack)
++static __inline__ bool mpsc_stack_empty(mpsc_stack_t *stack)
+ {
+    return !stack->head;
+ }
+ 
+-static INLINE mpsc_stack_node_t *mpsc_stack_drain(mpsc_stack_t *stack)
++static __inline__ mpsc_stack_node_t *mpsc_stack_drain(mpsc_stack_t *stack)
+ {
+    mpsc_stack_node_t *node = stack->head;
+    stack->head = NULL;
+@@ -126,7 +126,7 @@
+ #endif
+ 
+ /* The drained chain, oldest-first. */
+-static INLINE mpsc_stack_node_t *mpsc_stack_reverse(mpsc_stack_node_t *node)
++static __inline__ mpsc_stack_node_t *mpsc_stack_reverse(mpsc_stack_node_t *node)
+ {
+    mpsc_stack_node_t *chain = NULL;
+    while (node)
+--- a/include/queues/fifo_queue.h
++++ b/include/queues/fifo_queue.h
+@@ -98,14 +98,14 @@
+  * sees one snapshot rather than several. Inline, so a driver's
+  * write_avail(), which rate control samples every frame, pays a few
+  * instructions. */
+-static INLINE size_t fifo_read_avail_of(const fifo_buffer_t *buffer)
++static __inline__ size_t fifo_read_avail_of(const fifo_buffer_t *buffer)
+ {
+    size_t first = buffer->first;
+    size_t end   = buffer->end;
+    return (end < first) ? end + buffer->size - first : end - first;
+ }
+ 
+-static INLINE size_t fifo_write_avail_of(const fifo_buffer_t *buffer)
++static __inline__ size_t fifo_write_avail_of(const fifo_buffer_t *buffer)
+ {
+    return (buffer->size - 1) - fifo_read_avail_of(buffer);
+ }
+@@ -145,7 +145,7 @@
+  * @param buffer The FIFO queue to clear.
+  * Behavior is undefined if \c NULL.
+  */
+-static INLINE void fifo_clear(fifo_buffer_t *buffer)
++static __inline__ void fifo_clear(fifo_buffer_t *buffer)
+ {
+    buffer->first = 0;
+    buffer->end   = 0;
+--- a/include/queues/retro_triple_buffer.h
++++ b/include/queues/retro_triple_buffer.h
+@@ -42,7 +42,7 @@
+    int front;                /* the consumer's */
+ } retro_triple_buffer_t;
+ 
+-static INLINE void retro_triple_buffer_init(retro_triple_buffer_t *f,
++static __inline__ void retro_triple_buffer_init(retro_triple_buffer_t *f,
+       void *a, void *b, void *c)
+ {
+    f->buf[0] = a;
+@@ -54,13 +54,13 @@
+ }
+ 
+ /* Producer: the buffer the next frame goes into. */
+-static INLINE void *retro_triple_buffer_back(const retro_triple_buffer_t *f)
++static __inline__ void *retro_triple_buffer_back(const retro_triple_buffer_t *f)
+ {
+    return f->buf[f->back];
+ }
+ 
+ /* Producer: the frame in the back buffer is finished. */
+-static INLINE void retro_triple_buffer_publish(retro_triple_buffer_t *f)
++static __inline__ void retro_triple_buffer_publish(retro_triple_buffer_t *f)
+ {
+    int old = retro_atomic_exchange_int(&f->mid,
+          f->back | RETRO_TRIPLE_BUFFER_FRESH);
+@@ -71,7 +71,7 @@
+  * its next call, or NULL when none has been. Only the producer sets
+  * FRESH and only the consumer clears it, so once it is seen the
+  * exchange takes a buffer at least that new. */
+-static INLINE void *retro_triple_buffer_take(retro_triple_buffer_t *f)
++static __inline__ void *retro_triple_buffer_take(retro_triple_buffer_t *f)
+ {
+    if (!(retro_atomic_load_acquire_int(&f->mid) & RETRO_TRIPLE_BUFFER_FRESH))
+       return NULL;
+@@ -82,7 +82,7 @@
+ /* Consumer: the newest finished frame, the consumer's until its next
+  * call. Before the first publish it is the third buffer, as
+  * initialised. */
+-static INLINE void *retro_triple_buffer_front(retro_triple_buffer_t *f)
++static __inline__ void *retro_triple_buffer_front(retro_triple_buffer_t *f)
+ {
+    retro_triple_buffer_take(f);
+    return f->buf[f->front];
+--- a/include/string/stdstring.h
++++ b/include/string/stdstring.h
+@@ -58,12 +58,12 @@
+ /* Deprecated alias, all callers should use string_is_equal_case_insensitive instead */
+ #define string_is_equal_noncase string_is_equal_case_insensitive
+ 
+-static INLINE bool string_is_empty(const char *data)
++static __inline__ bool string_is_empty(const char *data)
+ {
+    return !data || !*data;
+ }
+ 
+-static INLINE bool string_is_equal(const char *a, const char *b)
++static __inline__ bool string_is_equal(const char *a, const char *b)
+ {
+    if (a == b)
+       return true;
+@@ -72,25 +72,25 @@
+    return !strcmp(a, b);
+ }
+ 
+-static INLINE bool string_starts_with_size(const char *str, const char *prefix,
++static __inline__ bool string_starts_with_size(const char *str, const char *prefix,
+       size_t len)
+ {
+    return (str && prefix) ? !strncmp(prefix, str, len) : false;
+ }
+ 
+-static INLINE bool string_starts_with(const char *str, const char *prefix)
++static __inline__ bool string_starts_with(const char *str, const char *prefix)
+ {
+    return (str && prefix) ? !strncmp(prefix, str, strlen(prefix)) : false;
+ }
+ 
+-static INLINE bool string_ends_with_size(const char *s, const char *suffix,
++static __inline__ bool string_ends_with_size(const char *s, const char *suffix,
+       size_t len, size_t suffix_len)
+ {
+    return (len < suffix_len) ? false :
+          !memcmp(suffix, s + (len - suffix_len), suffix_len);
+ }
+ 
+-static INLINE bool string_ends_with(const char *s, const char *suffix)
++static __inline__ bool string_ends_with(const char *s, const char *suffix)
+ {
+    return s && suffix && string_ends_with_size(s, suffix, strlen(s), strlen(suffix));
+ }
+@@ -106,7 +106,7 @@
+  * - If 'str' is not NULL and no '\0' character is found
+  *   in the first 'size' characters, returns 'size'
+  **/
+-static INLINE size_t strlen_size(const char *str, size_t len)
++static __inline__ size_t strlen_size(const char *str, size_t len)
+ {
+    size_t i = 0;
+    if (str)
+@@ -114,7 +114,7 @@
+    return i;
+ }
+ 
+-static INLINE bool string_is_equal_case_insensitive(const char *a,
++static __inline__ bool string_is_equal_case_insensitive(const char *a,
+       const char *b)
+ {
+    int result              = 0;
+@@ -133,7 +133,7 @@
+    return (result == 0);
+ }
+ 
+-static INLINE bool string_starts_with_case_insensitive(const char *str,
++static __inline__ bool string_starts_with_case_insensitive(const char *str,
+       const char *prefix)
+ {
+    int result              = 0;
+--- a/include/retro_atomic.h
++++ b/include/retro_atomic.h
+@@ -741,7 +741,7 @@
+  * It returns the value observed immediately before the successful
+  * swap, which is exactly the fetch_* contract.  Both call sites are
+  * uncontended flag words, so the loop cost is not a concern. */
+-static INLINE LONG retro_atomic_fetch_or_int_cas(LONG volatile *p, LONG v)
++static __inline__ LONG retro_atomic_fetch_or_int_cas(LONG volatile *p, LONG v)
+ {
+    LONG old;
+    LONG prev;
+@@ -754,7 +754,7 @@
+    return prev;
+ }
+ 
+-static INLINE LONG retro_atomic_fetch_and_int_cas(LONG volatile *p, LONG v)
++static __inline__ LONG retro_atomic_fetch_and_int_cas(LONG volatile *p, LONG v)
+ {
+    LONG old;
+    LONG prev;
+@@ -945,12 +945,12 @@
+  * plus one di/ei, and DIntr() carries the retry loop the EE's di
+  * needs, which is why this calls into the SDK rather than emitting
+  * the instructions here. */
+-static INLINE int retro_atomic_ee_mask_(void)
++static __inline__ int retro_atomic_ee_mask_(void)
+ {
+    return DIntr();
+ }
+ 
+-static INLINE void retro_atomic_ee_unmask_(int masked)
++static __inline__ void retro_atomic_ee_unmask_(int masked)
+ {
+    if (masked)
+       EIntr();
+@@ -968,7 +968,7 @@
+ #define retro_atomic_store_release_size(p, v)    do { *(p) = (v); } while (0)
+ #define retro_atomic_store_relaxed_size(p, v)    do { *(p) = (v); } while (0)
+ 
+-static INLINE int retro_atomic_ee_fetch_add_int_(retro_atomic_int_t *p, int v)
++static __inline__ int retro_atomic_ee_fetch_add_int_(retro_atomic_int_t *p, int v)
+ {
+    int old;
+    int masked = retro_atomic_ee_mask_();
+@@ -978,7 +978,7 @@
+    return old;
+ }
+ 
+-static INLINE int retro_atomic_ee_fetch_sub_int_(retro_atomic_int_t *p, int v)
++static __inline__ int retro_atomic_ee_fetch_sub_int_(retro_atomic_int_t *p, int v)
+ {
+    int old;
+    int masked = retro_atomic_ee_mask_();
+@@ -988,7 +988,7 @@
+    return old;
+ }
+ 
+-static INLINE int retro_atomic_ee_fetch_or_int_(retro_atomic_int_t *p, int v)
++static __inline__ int retro_atomic_ee_fetch_or_int_(retro_atomic_int_t *p, int v)
+ {
+    int old;
+    int masked = retro_atomic_ee_mask_();
+@@ -998,7 +998,7 @@
+    return old;
+ }
+ 
+-static INLINE int retro_atomic_ee_fetch_and_int_(retro_atomic_int_t *p, int v)
++static __inline__ int retro_atomic_ee_fetch_and_int_(retro_atomic_int_t *p, int v)
+ {
+    int old;
+    int masked = retro_atomic_ee_mask_();
+@@ -1008,7 +1008,7 @@
+    return old;
+ }
+ 
+-static INLINE size_t retro_atomic_ee_fetch_add_size_(retro_atomic_size_t *p,
++static __inline__ size_t retro_atomic_ee_fetch_add_size_(retro_atomic_size_t *p,
+       size_t v)
+ {
+    size_t old;
+@@ -1019,7 +1019,7 @@
+    return old;
+ }
+ 
+-static INLINE size_t retro_atomic_ee_fetch_sub_size_(retro_atomic_size_t *p,
++static __inline__ size_t retro_atomic_ee_fetch_sub_size_(retro_atomic_size_t *p,
+       size_t v)
+ {
+    size_t old;
+@@ -1078,42 +1078,42 @@
+ #define retro_atomic_exchange_int(p, v) \
+    retro_atomic_exchange_int_fb((p), (v))
+ 
+-static INLINE int retro_atomic_fetch_add_int_fb(retro_atomic_int_t *p, int v)
++static __inline__ int retro_atomic_fetch_add_int_fb(retro_atomic_int_t *p, int v)
+ {
+    int old = *p;
+    *p      = old + v;
+    return old;
+ }
+ 
+-static INLINE int retro_atomic_fetch_sub_int_fb(retro_atomic_int_t *p, int v)
++static __inline__ int retro_atomic_fetch_sub_int_fb(retro_atomic_int_t *p, int v)
+ {
+    int old = *p;
+    *p      = old - v;
+    return old;
+ }
+ 
+-static INLINE int retro_atomic_fetch_or_int_fb(retro_atomic_int_t *p, int v)
++static __inline__ int retro_atomic_fetch_or_int_fb(retro_atomic_int_t *p, int v)
+ {
+    int old = *p;
+    *p      = old | v;
+    return old;
+ }
+ 
+-static INLINE int retro_atomic_fetch_and_int_fb(retro_atomic_int_t *p, int v)
++static __inline__ int retro_atomic_fetch_and_int_fb(retro_atomic_int_t *p, int v)
+ {
+    int old = *p;
+    *p      = old & v;
+    return old;
+ }
+ 
+-static INLINE int retro_atomic_exchange_int_fb(retro_atomic_int_t *p, int v)
++static __inline__ int retro_atomic_exchange_int_fb(retro_atomic_int_t *p, int v)
+ {
+    int old = *p;
+    *p      = v;
+    return old;
+ }
+ 
+-static INLINE bool retro_atomic_cas_int_fb(retro_atomic_int_t *p,
++static __inline__ bool retro_atomic_cas_int_fb(retro_atomic_int_t *p,
+       int expected, int desired)
+ {
+    if (*p != expected)
+@@ -1131,7 +1131,7 @@
+ #define retro_atomic_fetch_sub_size(p, v) \
+    retro_atomic_fetch_sub_size_fb((p), (v))
+ 
+-static INLINE size_t retro_atomic_fetch_add_size_fb(retro_atomic_size_t *p,
++static __inline__ size_t retro_atomic_fetch_add_size_fb(retro_atomic_size_t *p,
+       size_t v)
+ {
+    size_t old = *p;
+@@ -1139,7 +1139,7 @@
+    return old;
+ }
+ 
+-static INLINE size_t retro_atomic_fetch_sub_size_fb(retro_atomic_size_t *p,
++static __inline__ size_t retro_atomic_fetch_sub_size_fb(retro_atomic_size_t *p,
+       size_t v)
+ {
+    size_t old = *p;
+@@ -1170,7 +1170,7 @@
+ #define retro_atomic_ptr_init(p, v)    atomic_init((p), (v))
+ #define retro_atomic_exchange_int(p, v) \
+    atomic_exchange_explicit((p), (v), memory_order_acq_rel)
+-static INLINE int retro_atomic_cas_int_impl_(retro_atomic_int_t *p, int expected, int desired)
++static __inline__ int retro_atomic_cas_int_impl_(retro_atomic_int_t *p, int expected, int desired)
+ {
+    int e = expected;
+    return atomic_compare_exchange_strong_explicit(p, &e, desired,
+@@ -1188,7 +1188,7 @@
+    atomic_store_explicit((p), (v), memory_order_relaxed)
+ #define retro_atomic_exchange_ptr(p, v) \
+    atomic_exchange_explicit((p), (v), memory_order_acq_rel)
+-static INLINE int retro_atomic_cas_ptr_impl_(retro_atomic_ptr_t *p, void *expected, void *desired)
++static __inline__ int retro_atomic_cas_ptr_impl_(retro_atomic_ptr_t *p, void *expected, void *desired)
+ {
+    void *e = expected;
+    return atomic_compare_exchange_strong_explicit(p, &e, desired,
+@@ -1211,7 +1211,7 @@
+ #define retro_atomic_ptr_init(p, v)    ((p)->store((v), std::memory_order_relaxed))
+ #define retro_atomic_exchange_int(p, v) \
+    ((p)->exchange((v), std::memory_order_acq_rel))
+-static INLINE int retro_atomic_cas_int_impl_(retro_atomic_int_t *p, int expected, int desired)
++static __inline__ int retro_atomic_cas_int_impl_(retro_atomic_int_t *p, int expected, int desired)
+ {
+    int e = expected;
+    return (int)p->compare_exchange_strong(e, desired,
+@@ -1229,7 +1229,7 @@
+    ((p)->store((v), std::memory_order_relaxed))
+ #define retro_atomic_exchange_ptr(p, v) \
+    ((p)->exchange((v), std::memory_order_acq_rel))
+-static INLINE int retro_atomic_cas_ptr_impl_(retro_atomic_ptr_t *p, void *expected, void *desired)
++static __inline__ int retro_atomic_cas_ptr_impl_(retro_atomic_ptr_t *p, void *expected, void *desired)
+ {
+    void *e = expected;
+    return (int)p->compare_exchange_strong(e, desired,
+@@ -1252,7 +1252,7 @@
+ #define retro_atomic_ptr_init(p, v)    (*(p) = (v))
+ #define retro_atomic_exchange_int(p, v) \
+    __atomic_exchange_n((p), (v), __ATOMIC_ACQ_REL)
+-static INLINE int retro_atomic_cas_int_impl_(retro_atomic_int_t *p, int expected, int desired)
++static __inline__ int retro_atomic_cas_int_impl_(retro_atomic_int_t *p, int expected, int desired)
+ {
+    int e = expected;
+    return __atomic_compare_exchange_n(p, &e, desired, 0,
+@@ -1270,7 +1270,7 @@
+    __atomic_store_n((p), (v), __ATOMIC_RELAXED)
+ #define retro_atomic_exchange_ptr(p, v) \
+    __atomic_exchange_n((p), (v), __ATOMIC_ACQ_REL)
+-static INLINE int retro_atomic_cas_ptr_impl_(retro_atomic_ptr_t *p, void *expected, void *desired)
++static __inline__ int retro_atomic_cas_ptr_impl_(retro_atomic_ptr_t *p, void *expected, void *desired)
+ {
+    void *e = expected;
+    return __atomic_compare_exchange_n(p, &e, desired, 0,
+@@ -1293,7 +1293,7 @@
+ #define retro_atomic_ptr_init(p, v)    (*(p) = (v))
+ #define retro_atomic_exchange_int(p, v) \
+    ((int)InterlockedExchange((volatile LONG*)(p), (LONG)(v)))
+-static INLINE int retro_atomic_cas_int_impl_(retro_atomic_int_t *p, int expected, int desired)
++static __inline__ int retro_atomic_cas_int_impl_(retro_atomic_int_t *p, int expected, int desired)
+ {
+    return InterlockedCompareExchange((volatile LONG*)p, (LONG)desired,
+          (LONG)expected) == (LONG)expected;
+@@ -1325,7 +1325,7 @@
+ 
+ typedef void* volatile retro_atomic_ptr_t;
+ #define retro_atomic_ptr_init(p, v)    (*(p) = (v))
+-static INLINE int retro_atomic_exchange_int_impl_(retro_atomic_int_t *p, int v)
++static __inline__ int retro_atomic_exchange_int_impl_(retro_atomic_int_t *p, int v)
+ {
+    int old;
+    do { old = *p; } while (!OSAtomicCompareAndSwapIntBarrier(old, v, (volatile int*)p));
+@@ -1335,7 +1335,7 @@
+    retro_atomic_exchange_int_impl_((p), (v))
+ #define retro_atomic_cas_int(p, expected, desired) \
+    OSAtomicCompareAndSwapIntBarrier((expected), (desired), (volatile int*)(p))
+-static INLINE void* retro_atomic_load_acquire_ptr_impl_(retro_atomic_ptr_t *p)
++static __inline__ void* retro_atomic_load_acquire_ptr_impl_(retro_atomic_ptr_t *p)
+ {
+    void* v = *p;
+    OSMemoryBarrier();
+@@ -1347,14 +1347,14 @@
+  * no OSMemoryBarrier. */
+ #define retro_atomic_load_relaxed_ptr(p)      (*(p))
+ #define retro_atomic_store_relaxed_ptr(p, v)  do { *(p) = (void*)(v); } while (0)
+-static INLINE void retro_atomic_store_release_ptr_impl_(retro_atomic_ptr_t *p, void* v)
++static __inline__ void retro_atomic_store_release_ptr_impl_(retro_atomic_ptr_t *p, void* v)
+ {
+    OSMemoryBarrier();
+    *p = v;
+ }
+ #define retro_atomic_store_release_ptr(p, v) \
+    retro_atomic_store_release_ptr_impl_((p), (void*)(v))
+-static INLINE void* retro_atomic_exchange_ptr_impl_(retro_atomic_ptr_t *p, void* v)
++static __inline__ void* retro_atomic_exchange_ptr_impl_(retro_atomic_ptr_t *p, void* v)
+ {
+    void* old;
+    do { old = *p; } while (!OSAtomicCompareAndSwapPtrBarrier(old, v, (void* volatile*)p));
+@@ -1374,7 +1374,7 @@
+ 
+ typedef void* volatile retro_atomic_ptr_t;
+ #define retro_atomic_ptr_init(p, v)    (*(p) = (v))
+-static INLINE int retro_atomic_exchange_int_impl_(retro_atomic_int_t *p, int v)
++static __inline__ int retro_atomic_exchange_int_impl_(retro_atomic_int_t *p, int v)
+ {
+    int old;
+    do { old = *p; } while (__sync_val_compare_and_swap(p, old, v) != old);
+@@ -1384,7 +1384,7 @@
+    retro_atomic_exchange_int_impl_((p), (v))
+ #define retro_atomic_cas_int(p, expected, desired) \
+    __sync_bool_compare_and_swap((p), (expected), (desired))
+-static INLINE void* retro_atomic_load_acquire_ptr_impl_(retro_atomic_ptr_t *p)
++static __inline__ void* retro_atomic_load_acquire_ptr_impl_(retro_atomic_ptr_t *p)
+ {
+    void* v = *(void* volatile*)p;
+    __sync_synchronize();
+@@ -1398,7 +1398,7 @@
+ #define retro_atomic_store_relaxed_ptr(p, v)  do { *(p) = (void*)(v); } while (0)
+ #define retro_atomic_store_release_ptr(p, v) \
+    do { __sync_synchronize(); *(p) = (v); __sync_synchronize(); } while (0)
+-static INLINE void* retro_atomic_exchange_ptr_impl_(retro_atomic_ptr_t *p, void* v)
++static __inline__ void* retro_atomic_exchange_ptr_impl_(retro_atomic_ptr_t *p, void* v)
+ {
+    void* old;
+    do { old = *(void* volatile*)p; } while (!__sync_bool_compare_and_swap((void* volatile*)p, old, v));
+@@ -1419,7 +1419,7 @@
+ typedef void* volatile retro_atomic_ptr_t;
+ #define retro_atomic_ptr_init(p, v)    (*(p) = (v))
+ 
+-static INLINE int retro_atomic_ee_exchange_int_(retro_atomic_int_t *p, int v)
++static __inline__ int retro_atomic_ee_exchange_int_(retro_atomic_int_t *p, int v)
+ {
+    int old;
+    int masked = retro_atomic_ee_mask_();
+@@ -1429,7 +1429,7 @@
+    return old;
+ }
+ 
+-static INLINE int retro_atomic_ee_cas_int_(retro_atomic_int_t *p,
++static __inline__ int retro_atomic_ee_cas_int_(retro_atomic_int_t *p,
+       int expected, int desired)
+ {
+    int ok;
+@@ -1440,7 +1440,7 @@
+    return ok;
+ }
+ 
+-static INLINE void *retro_atomic_ee_exchange_ptr_(retro_atomic_ptr_t *p,
++static __inline__ void *retro_atomic_ee_exchange_ptr_(retro_atomic_ptr_t *p,
+       void *v)
+ {
+    void *old;
+@@ -1451,7 +1451,7 @@
+    return old;
+ }
+ 
+-static INLINE int retro_atomic_ee_cas_ptr_(retro_atomic_ptr_t *p,
++static __inline__ int retro_atomic_ee_cas_ptr_(retro_atomic_ptr_t *p,
+       void *expected, void *desired)
+ {
+    int ok;
+@@ -1541,7 +1541,7 @@
+ #if !defined(retro_atomic_load_seq_cst_int)
+ /* A function rather than a comma expression: the fence is a statement
+  * on the backends that spell it as inline asm. */
+-static INLINE int retro_atomic_load_seq_cst_int_fb_(retro_atomic_int_t *p)
++static __inline__ int retro_atomic_load_seq_cst_int_fb_(retro_atomic_int_t *p)
+ {
+    retro_atomic_thread_fence_seq_cst();
+    return retro_atomic_load_acquire_int(p);
+@@ -1572,7 +1572,7 @@
+    atomic_store_explicit((p), (v), memory_order_release)
+ #define retro_atomic_exchange_64(p, v) \
+    atomic_exchange_explicit((p), (v), memory_order_acq_rel)
+-static INLINE int retro_atomic_cas_64_impl_(retro_atomic_64_t *p, int64_t expected, int64_t desired)
++static __inline__ int retro_atomic_cas_64_impl_(retro_atomic_64_t *p, int64_t expected, int64_t desired)
+ {
+    int64_t e = expected;
+    return atomic_compare_exchange_strong_explicit(p, &e, desired,
+@@ -1597,7 +1597,7 @@
+    ((p)->store((v), std::memory_order_release))
+ #define retro_atomic_exchange_64(p, v) \
+    ((p)->exchange((v), std::memory_order_acq_rel))
+-static INLINE int retro_atomic_cas_64_impl_(retro_atomic_64_t *p, int64_t expected, int64_t desired)
++static __inline__ int retro_atomic_cas_64_impl_(retro_atomic_64_t *p, int64_t expected, int64_t desired)
+ {
+    int64_t e = expected;
+    return (int)p->compare_exchange_strong(e, desired,
+@@ -1622,7 +1622,7 @@
+    __atomic_store_n((p), (v), __ATOMIC_RELEASE)
+ #define retro_atomic_exchange_64(p, v) \
+    __atomic_exchange_n((p), (v), __ATOMIC_ACQ_REL)
+-static INLINE int retro_atomic_cas_64_impl_(retro_atomic_64_t *p, int64_t expected, int64_t desired)
++static __inline__ int retro_atomic_cas_64_impl_(retro_atomic_64_t *p, int64_t expected, int64_t desired)
+ {
+    int64_t e = expected;
+    return __atomic_compare_exchange_n(p, &e, desired, 0,
+@@ -1655,7 +1655,7 @@
+ #pragma intrinsic(_InterlockedCompareExchange64)
+ #define RETRO_ATOMIC_MSVC_CMPX64_(p, d, e) \
+    _InterlockedCompareExchange64((__int64 volatile*)(p), (d), (e))
+-static INLINE LONGLONG retro_atomic_msvc_xchg_64_(LONGLONG volatile *p,
++static __inline__ LONGLONG retro_atomic_msvc_xchg_64_(LONGLONG volatile *p,
+       LONGLONG v)
+ {
+    LONGLONG old;
+@@ -1683,7 +1683,7 @@
+    ((void)RETRO_ATOMIC_MSVC_XCHG64_((p), (LONGLONG)(v)))
+ #define retro_atomic_exchange_64(p, v) \
+    RETRO_ATOMIC_MSVC_XCHG64_((p), (LONGLONG)(v))
+-static INLINE int retro_atomic_cas_64_impl_(retro_atomic_64_t *p, LONGLONG expected, LONGLONG desired)
++static __inline__ int retro_atomic_cas_64_impl_(retro_atomic_64_t *p, LONGLONG expected, LONGLONG desired)
+ {
+    return RETRO_ATOMIC_MSVC_CMPX64_(p, desired, expected) == expected;
+ }
+@@ -1715,7 +1715,7 @@
+ #include <stdint.h>
+ typedef int64_t volatile retro_atomic_64_t;
+ #define retro_atomic_64_init(p, v)     (*(p) = (v))
+-static INLINE int64_t retro_atomic_load_acquire_64_impl_(retro_atomic_64_t *p)
++static __inline__ int64_t retro_atomic_load_acquire_64_impl_(retro_atomic_64_t *p)
+ {
+    int64_t v;
+    do { v = *p; } while (!OSAtomicCompareAndSwap64Barrier(v, v, (volatile int64_t*)p));
+@@ -1723,14 +1723,14 @@
+ }
+ #define retro_atomic_load_acquire_64(p) \
+    retro_atomic_load_acquire_64_impl_((p))
+-static INLINE void retro_atomic_store_release_64_impl_(retro_atomic_64_t *p, int64_t v)
++static __inline__ void retro_atomic_store_release_64_impl_(retro_atomic_64_t *p, int64_t v)
+ {
+    int64_t old;
+    do { old = *p; } while (!OSAtomicCompareAndSwap64Barrier(old, v, (volatile int64_t*)p));
+ }
+ #define retro_atomic_store_release_64(p, v) \
+    retro_atomic_store_release_64_impl_((p), (v))
+-static INLINE int64_t retro_atomic_exchange_64_impl_(retro_atomic_64_t *p, int64_t v)
++static __inline__ int64_t retro_atomic_exchange_64_impl_(retro_atomic_64_t *p, int64_t v)
+ {
+    int64_t old;
+    do { old = *p; } while (!OSAtomicCompareAndSwap64Barrier(old, v, (volatile int64_t*)p));
+@@ -1765,7 +1765,7 @@
+    __sync_fetch_and_add((int64_t volatile*)(p), (int64_t)0)
+ #define retro_atomic_store_release_64(p, v) \
+    do { __sync_synchronize(); *(p) = (v); __sync_synchronize(); } while (0)
+-static INLINE int64_t retro_atomic_exchange_64_impl_(retro_atomic_64_t *p, int64_t v)
++static __inline__ int64_t retro_atomic_exchange_64_impl_(retro_atomic_64_t *p, int64_t v)
+ {
+    int64_t old;
+    do { old = *p; } while (__sync_val_compare_and_swap(p, old, v) != old);
+@@ -1798,7 +1798,7 @@
+  * counterparts: the EE's ABI keeps a 64-bit integer in a register pair
+  * and the compiler is free to move it in two instructions, so the
+  * access is not indivisible on its own. */
+-static INLINE int64_t retro_atomic_ee_load_64_(retro_atomic_64_t *p)
++static __inline__ int64_t retro_atomic_ee_load_64_(retro_atomic_64_t *p)
+ {
+    int64_t v;
+    int masked = retro_atomic_ee_mask_();
+@@ -1807,7 +1807,7 @@
+    return v;
+ }
+ 
+-static INLINE void retro_atomic_ee_store_64_(retro_atomic_64_t *p, int64_t v)
++static __inline__ void retro_atomic_ee_store_64_(retro_atomic_64_t *p, int64_t v)
+ {
+    int masked = retro_atomic_ee_mask_();
+    *p         = v;
+@@ -1822,7 +1822,7 @@
+ #define retro_atomic_store_relaxed_64(p, v) \
+    retro_atomic_ee_store_64_((p), (int64_t)(v))
+ 
+-static INLINE int64_t retro_atomic_ee_exchange_64_(retro_atomic_64_t *p,
++static __inline__ int64_t retro_atomic_ee_exchange_64_(retro_atomic_64_t *p,
+       int64_t v)
+ {
+    int64_t old;
+@@ -1833,7 +1833,7 @@
+    return old;
+ }
+ 
+-static INLINE int retro_atomic_ee_cas_64_(retro_atomic_64_t *p,
++static __inline__ int retro_atomic_ee_cas_64_(retro_atomic_64_t *p,
+       int64_t expected, int64_t desired)
+ {
+    int ok;
+--- a/include/gfx/video_frame.h
++++ b/include/gfx/video_frame.h
+@@ -44,7 +44,7 @@
+       scaler_ctx_scale(ctx, output, input); \
+ }
+ 
+-static INLINE void video_frame_convert_rgb16_to_rgb32(
++static __inline__ void video_frame_convert_rgb16_to_rgb32(
+       struct scaler_ctx *scaler,
+       void *output,
+       const void *input,
+@@ -69,7 +69,7 @@
+    scaler_ctx_scale_direct(scaler, output, input);
+ }
+ 
+-static INLINE void video_frame_scale(
++static __inline__ void video_frame_scale(
+       struct scaler_ctx *scaler,
+       void *output,
+       const void *input,
+@@ -103,7 +103,7 @@
+    scaler_ctx_scale_direct(scaler, output, input);
+ }
+ 
+-static INLINE void video_frame_record_scale(
++static __inline__ void video_frame_record_scale(
+       struct scaler_ctx *scaler,
+       void *output,
+       const void *input,
+@@ -137,7 +137,7 @@
+    scaler_ctx_scale_direct(scaler, output, input);
+ }
+ 
+-static INLINE void video_frame_convert_argb8888_to_abgr8888(
++static __inline__ void video_frame_convert_argb8888_to_abgr8888(
+       struct scaler_ctx *scaler,
+       void *output, const void *input,
+       int width, int height, int in_pitch)
+@@ -160,7 +160,7 @@
+    scaler_ctx_scale_direct(scaler, output, input);
+ }
+ 
+-static INLINE void video_frame_convert_to_bgr24(
++static __inline__ void video_frame_convert_to_bgr24(
+       struct scaler_ctx *scaler,
+       void *output, const void *input,
+       int in_width, int in_height, int in_pitch,
+@@ -182,7 +182,7 @@
+    scaler_ctx_scale_direct(scaler, output, input);
+ }
+ 
+-static INLINE void video_frame_convert_rgba_to_bgr(
++static __inline__ void video_frame_convert_rgba_to_bgr(
+       const void *src_data,
+       void *dst_data,
+       unsigned src_pitch,
+@@ -207,7 +207,7 @@
+    }
+ }
+ 
+-static INLINE void video_pixel_frame_scale(
++static __inline__ void video_pixel_frame_scale(
+       struct scaler_ctx *scaler,
+       void *output, const void *data,
+       unsigned width, unsigned height,
+--- a/include/gfx/math/vector_2.h
++++ b/include/gfx/math/vector_2.h
+@@ -49,7 +49,7 @@
+    dst[0] = src[0]; \
+    dst[1] = src[1]
+ 
+-static INLINE float overflow(void)
++static __inline__ float overflow(void)
+ {
+    unsigned i;
+    volatile float f = 1e10;
+@@ -59,7 +59,7 @@
+    return f;
+ }
+ 
+-static INLINE int16_t tofloat16(float f)
++static __inline__ int16_t tofloat16(float f)
+ {
+ 	union uif32
+    {
+@@ -119,7 +119,7 @@
+    return (int16_t)(s | (e << 10) | (m >> 13));
+ }
+ 
+-static INLINE unsigned int vec2_packHalf2x16(float vec0, float vec1)
++static __inline__ unsigned int vec2_packHalf2x16(float vec0, float vec1)
+ {
+    union
+    {
+--- a/include/gfx/math/matrix_3x3.h
++++ b/include/gfx/math/matrix_3x3.h
+@@ -137,7 +137,7 @@
+ #define FLOATS_ARE_EQUAL(x, y)  (fabs(x - y) <= 0.00001f * ((x) > (y) ? (y) : (x)))
+ #define FLOAT_IS_ZERO(x)        (FLOATS_ARE_EQUAL((x) + 1, 1))
+ 
+-static INLINE bool matrix_3x3_invert(math_matrix_3x3 *mat)
++static __inline__ bool matrix_3x3_invert(math_matrix_3x3 *mat)
+ {
+    float det = matrix_3x3_determinant(*mat);
+ 
+@@ -150,7 +150,7 @@
+    return true;
+ }
+ 
+-static INLINE bool matrix_3x3_square_to_quad(
++static __inline__ bool matrix_3x3_square_to_quad(
+       const float dx0, const float dy0,
+       const float dx1, const float dy1,
+       const float dx3, const float dy3,
+@@ -205,7 +205,7 @@
+    return true;
+ }
+ 
+-static INLINE bool matrix_3x3_quad_to_square(
++static __inline__ bool matrix_3x3_quad_to_square(
+       const float sx0, const float sy0,
+       const float sx1, const float sy1,
+       const float sx2, const float sy2,
+@@ -217,7 +217,7 @@
+          mat) ? matrix_3x3_invert(mat) : false;
+ }
+ 
+-static INLINE bool matrix_3x3_quad_to_quad(
++static __inline__ bool matrix_3x3_quad_to_quad(
+       const float dx0, const float dy0,
+       const float dx1, const float dy1,
+       const float dx2, const float dy2,
+--- a/include/gfx/scaler/pixconv.h
++++ b/include/gfx/scaler/pixconv.h
+@@ -44,7 +44,7 @@
+  * by 0x11, which duplicates every nibble into its byte's high half
+  * without carries.
+  */
+-static INLINE uint32_t pixconv_rgb565_to_xrgb8888(uint32_t c)
++static __inline__ uint32_t pixconv_rgb565_to_xrgb8888(uint32_t c)
+ {
+    uint32_t rb = ((c & 0xf800) << 8) | ((c & 0x001f) << 3);
+    uint32_t g  =  (c & 0x07e0) << 5;
+@@ -53,7 +53,7 @@
+    return rb | g;
+ }
+ 
+-static INLINE uint32_t pixconv_rgb565_to_xbgr8888(uint32_t c)
++static __inline__ uint32_t pixconv_rgb565_to_xbgr8888(uint32_t c)
+ {
+    uint32_t br = ((c & 0x001f) << 19) | ((c & 0xf800) >> 8);
+    uint32_t g  =  (c & 0x07e0) << 5;
+@@ -62,14 +62,14 @@
+    return br | g;
+ }
+ 
+-static INLINE uint32_t pixconv_0rgb1555_to_xrgb8888(uint32_t c)
++static __inline__ uint32_t pixconv_0rgb1555_to_xrgb8888(uint32_t c)
+ {
+    uint32_t x = ((c & 0x7c00) << 9) | ((c & 0x03e0) << 6)
+               | ((c & 0x001f) << 3);
+    return x | ((x >> 5) & 0x070707);
+ }
+ 
+-static INLINE uint32_t pixconv_0rgb1555_to_xbgr8888(uint32_t c)
++static __inline__ uint32_t pixconv_0rgb1555_to_xbgr8888(uint32_t c)
+ {
+    uint32_t x = ((c & 0x001f) << 19) | ((c & 0x03e0) << 6)
+               | ((c & 0x7c00) >> 7);
+@@ -77,7 +77,7 @@
+ }
+ 
+ /* 16-bit RGBA4444 (R in the top nibble) to ARGB8888. */
+-static INLINE uint32_t pixconv_rgba4444_to_argb8888(uint32_t c)
++static __inline__ uint32_t pixconv_rgba4444_to_argb8888(uint32_t c)
+ {
+    uint32_t x = ((c & 0x000f) << 24) | ((c & 0xf000) <<  4)
+               |  (c & 0x0f00)        | ((c & 0x00f0) >>  4);
+@@ -85,7 +85,7 @@
+ }
+ 
+ /* 16-bit ARGB4444 (A in the top nibble) to ARGB8888. */
+-static INLINE uint32_t pixconv_argb4444_to_argb8888(uint32_t c)
++static __inline__ uint32_t pixconv_argb4444_to_argb8888(uint32_t c)
+ {
+    uint32_t x = ((c & 0xf000) << 12) | ((c & 0x0f00) <<  8)
+               | ((c & 0x00f0) <<  4) |  (c & 0x000f);
+@@ -93,7 +93,7 @@
+ }
+ 
+ /* 16-bit ARGB4444 (A in the top nibble) to ABGR8888. */
+-static INLINE uint32_t pixconv_argb4444_to_abgr8888(uint32_t c)
++static __inline__ uint32_t pixconv_argb4444_to_abgr8888(uint32_t c)
+ {
+    uint32_t x = ((c & 0xf000) << 12) | ((c & 0x000f) << 16)
+               | ((c & 0x00f0) <<  4) | ((c & 0x0f00) >>  8);
+--- a/include/retro_endianness.h
++++ b/include/retro_endianness.h
+@@ -36,7 +36,7 @@
+  * @param x The integer to byteswap.
+  * @return \c with its two bytes swapped.
+  */
+-static INLINE uint16_t SWAP16(uint16_t x)
++static __inline__ uint16_t SWAP16(uint16_t x)
+ {
+   return ((x & 0x00ff) << 8) |
+          ((x & 0xff00) >> 8);
+@@ -47,7 +47,7 @@
+  * @param x The integer to byteswap.
+  * @return \c with its bytes swapped.
+  */
+-static INLINE uint32_t SWAP32(uint32_t x)
++static __inline__ uint32_t SWAP32(uint32_t x)
+ {
+   return ((x & 0x000000ff) << 24) |
+          ((x & 0x0000ff00) <<  8) |
+@@ -58,7 +58,7 @@
+ #endif
+ 
+ #if defined(_MSC_VER) && _MSC_VER <= 1200
+-static INLINE uint64_t SWAP64(uint64_t val)
++static __inline__ uint64_t SWAP64(uint64_t val)
+ {
+   return
+       ((val & 0x00000000000000ff) << 56)
+@@ -76,7 +76,7 @@
+  * @param x The integer to byteswap.
+  * @return \c with its bytes swapped.
+  */
+-static INLINE uint64_t SWAP64(uint64_t val)
++static __inline__ uint64_t SWAP64(uint64_t val)
+ {
+   return   ((val & 0x00000000000000ffULL) << 56)
+ 	 | ((val & 0x000000000000ff00ULL) << 40)
+@@ -232,7 +232,7 @@
+  * @param data The value to store in \c addr.
+  * Will be byteswapped if on a little-endian CPU.
+  */
+-static INLINE void store32be(uint32_t *addr, uint32_t data)
++static __inline__ void store32be(uint32_t *addr, uint32_t data)
+ {
+    *addr = swap_if_little32(data);
+ }
+@@ -244,7 +244,7 @@
+  * Behavior is undefined if \c NULL or not aligned to a 32-bit boundary.
+  * @return The value at \c addr, byteswapped if on a little-endian CPU.
+  */
+-static INLINE uint32_t load32be(const uint32_t *addr)
++static __inline__ uint32_t load32be(const uint32_t *addr)
+ {
+    return swap_if_little32(*addr);
+ }
+@@ -416,7 +416,7 @@
+  * @return The first two bytes of \c addr as a 16-bit unsigned integer,
+  * byteswapped from big-endian to host-native order if necessary.
+  */
+-static INLINE uint16_t retro_get_unaligned_16be(void *addr)
++static __inline__ uint16_t retro_get_unaligned_16be(void *addr)
+ {
+    return retro_be_to_cpu16(retro_unaligned16(addr));
+ }
+@@ -432,7 +432,7 @@
+  * @return The first four bytes of \c addr as a 32-bit unsigned integer,
+  * byteswapped from big-endian to host-native order if necessary.
+  */
+-static INLINE uint32_t retro_get_unaligned_32be(void *addr)
++static __inline__ uint32_t retro_get_unaligned_32be(void *addr)
+ {
+    return retro_be_to_cpu32(retro_unaligned32(addr));
+ }
+@@ -448,7 +448,7 @@
+  * @return The first eight bytes of \c addr as a 64-bit unsigned integer,
+  * byteswapped from big-endian to host-native order if necessary.
+  */
+-static INLINE uint64_t retro_get_unaligned_64be(void *addr)
++static __inline__ uint64_t retro_get_unaligned_64be(void *addr)
+ {
+    return retro_be_to_cpu64(retro_unaligned64(addr));
+ }
+@@ -464,7 +464,7 @@
+  * @return The first two bytes of \c addr as a 16-bit unsigned integer,
+  * byteswapped from little-endian to host-native order if necessary.
+  */
+-static INLINE uint16_t retro_get_unaligned_16le(void *addr)
++static __inline__ uint16_t retro_get_unaligned_16le(void *addr)
+ {
+    return retro_le_to_cpu16(retro_unaligned16(addr));
+ }
+@@ -480,7 +480,7 @@
+  * @return The first four bytes of \c addr as a 32-bit unsigned integer,
+  * byteswapped from little-endian to host-native order if necessary.
+  */
+-static INLINE uint32_t retro_get_unaligned_32le(void *addr)
++static __inline__ uint32_t retro_get_unaligned_32le(void *addr)
+ {
+    return retro_le_to_cpu32(retro_unaligned32(addr));
+ }
+@@ -496,7 +496,7 @@
+  * @return The first eight bytes of \c addr as a 64-bit unsigned integer,
+  * byteswapped from little-endian to host-native order if necessary.
+  */
+-static INLINE uint64_t retro_get_unaligned_64le(void *addr)
++static __inline__ uint64_t retro_get_unaligned_64le(void *addr)
+ {
+    return retro_le_to_cpu64(retro_unaligned64(addr));
+ }
+@@ -511,7 +511,7 @@
+  * the way a \c uint16_t* usually would be.
+  * @param v The value to write.
+  */
+-static INLINE void retro_set_unaligned_16le(void *addr, uint16_t v)
++static __inline__ void retro_set_unaligned_16le(void *addr, uint16_t v)
+ {
+    retro_unaligned16(addr) = retro_cpu_to_le16(v);
+ }
+@@ -526,7 +526,7 @@
+  * the way a \c uint32_t* usually would be.
+  * @param v The value to write.
+  */
+-static INLINE void retro_set_unaligned_32le(void *addr, uint32_t v)
++static __inline__ void retro_set_unaligned_32le(void *addr, uint32_t v)
+ {
+    retro_unaligned32(addr) = retro_cpu_to_le32(v);
+ }
+@@ -541,7 +541,7 @@
+  * the way a \c uint64_t* usually would be.
+  * @param v The value to write.
+  */
+-static INLINE void retro_set_unaligned_64le(void *addr, uint64_t v)
++static __inline__ void retro_set_unaligned_64le(void *addr, uint64_t v)
+ {
+    retro_unaligned64(addr) = retro_cpu_to_le64(v);
+ }
+@@ -556,7 +556,7 @@
+  * the way a \c uint16_t* usually would be.
+  * @param v The value to write.
+  */
+-static INLINE void retro_set_unaligned_16be(void *addr, uint16_t v)
++static __inline__ void retro_set_unaligned_16be(void *addr, uint16_t v)
+ {
+    retro_unaligned16(addr) = retro_cpu_to_be16(v);
+ }
+@@ -571,7 +571,7 @@
+  * the way a \c uint32_t* usually would be.
+  * @param v The value to write.
+  */
+-static INLINE void retro_set_unaligned_32be(void *addr, uint32_t v)
++static __inline__ void retro_set_unaligned_32be(void *addr, uint32_t v)
+ {
+    retro_unaligned32(addr) = retro_cpu_to_be32(v);
+ }
+@@ -586,7 +586,7 @@
+  * the way a \c uint64_t* usually would be.
+  * @param v The value to write.
+  */
+-static INLINE void retro_set_unaligned_64be(void *addr, uint64_t v)
++static __inline__ void retro_set_unaligned_64be(void *addr, uint64_t v)
+ {
+    retro_unaligned64(addr) = retro_cpu_to_be64(v);
+ }
+--- a/include/filters.h
++++ b/include/filters.h
+@@ -36,7 +36,7 @@
+  *
+  * Pure function.
+  **/
+-static INLINE double sinc(double val)
++static __inline__ double sinc(double val)
+ {
+    if (fabs(val) < 0.00001)
+       return 1.0;
+@@ -49,7 +49,7 @@
+  * Pure function.
+  * Paeth prediction filter.
+  **/
+-static INLINE int paeth(int a, int b, int c)
++static __inline__ int paeth(int a, int b, int c)
+ {
+    int p  = a + b - c;
+    int pa = abs(p - a);
+@@ -71,7 +71,7 @@
+  * Modified Bessel function of first order.
+  * Check Wiki for mathematical definition ...
+  **/
+-static INLINE double besseli0(double x)
++static __inline__ double besseli0(double x)
+ {
+    int i;
+    double sum            = 0.0;
+@@ -95,7 +95,7 @@
+    return sum;
+ }
+ 
+-static INLINE double kaiser_window_function(double index, double beta)
++static __inline__ double kaiser_window_function(double index, double beta)
+ {
+    return besseli0(beta * sqrt(1 - index * index));
+ }

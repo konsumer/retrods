@@ -1,0 +1,12 @@
+SPDX-License-Identifier: Zlib
+SPDX-FileNotice: retrods local patch, not part of upstream Genesis-Plus-GX.
+
+Shrink the Sega CD cartridge area.
+
+cd_cart_t::area is 0x810000 (8 MB + 64 KB) and sits inside the external_t
+union, so every build pays for it: `ext` came out at ~10 MB, more than a DSi can
+spare alongside the rest of the core. Only Sega CD cartridge ROMs use it, Mega
+Drive cartridges use md_cart_t::rom, and this build has CD support disabled
+(CHD/libchdr dropped), so 64 KB is plenty.
+
+Applied with: patch -p1 < patches/Genesis-Plus-GX/0001-shrink-cd-cart-area.patch

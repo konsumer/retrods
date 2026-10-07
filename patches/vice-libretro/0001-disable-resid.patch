@@ -1,0 +1,13 @@
+--- a/include/config.h
++++ b/include/config.h
+@@ -94,7 +94,9 @@
+ #define HAVE_FASTSID
+ 
+ /* This version provides ReSID support. */
+-#define HAVE_RESID 
++/* retrods: disabled. reSID's 6581 filter tables are 21 MiB of .bss, which
++ * does not fit a DS or DSi; HAVE_FASTSID above is used instead. */
++#undef HAVE_RESID
+ 
+ /* Define to 1 if you have the <signal.h> header file. */
+ #define HAVE_SIGNAL_H 1

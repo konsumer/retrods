@@ -1,0 +1,16 @@
+--- a/core/cd_hw/cd_cart.h
++++ b/core/cd_hw/cd_cart.h
+@@ -41,7 +41,12 @@
+ typedef struct 
+ {
+   uint8 reserved[0x80];  /* reserved for ROM cartridge infos (see md_cart.h) */
+-  uint8 area[0x810000];  /* cartridge ROM/RAM area (max. 8MB ROM + Pro Action Replay 64KB ROM) */
++  /* retrods: was 0x810000 (8 MB + 64 KB). This array is inside the
++   * external_t union, so its size is charged to every build even though
++   * only Sega CD cartridge ROMs use it - and this build has no CD support
++   * (CHD/libchdr is disabled). Mega Drive cartridges live in
++   * md_cart_t.rom instead. */
++  uint8 area[0x10000];   /* CD cartridge ROM/RAM area */
+   uint8 boot;            /* cartridge boot mode (0x00: boot from CD with ROM/RAM cartridge enabled, 0x40: boot from ROM cartridge with CD enabled) */
+   uint8 id;              /* RAM cartridge ID (related to RAM size, 0 if disabled) */
+   uint8 prot;            /* RAM cartridge write protection */

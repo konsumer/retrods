@@ -1,0 +1,12 @@
+SPDX-License-Identifier: Zlib
+SPDX-FileNotice: retrods local patch, not part of upstream fmsx-libretro.
+
+Do not clobber INLINE.
+
+MSX.h and Z80.c do `#undef INLINE` and redefine it as `static inline`.
+libretro-common's headers (compat/strl.h and friends) also write `static INLINE`,
+which then becomes `static static inline` and fails to compile. Guarding the
+redefinition lets the build system supply INLINE instead (see
+cores/fmsx.extra.mk, which passes -DINLINE=__inline__ -fgnu89-inline).
+
+Applied with: patch -p1 < patches/fmsx-libretro/0001-inline-not-clobbered.patch

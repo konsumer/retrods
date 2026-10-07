@@ -1,0 +1,14 @@
+build/
+build-*/
+build-apps/
+apps/
+build-dsi/
+build-host/
+third_party/
+*.nds
+*.elf
+*.map
+*.dump
+sdroot/
+compile_commands.json
+.DS_Store

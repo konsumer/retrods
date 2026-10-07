@@ -1,0 +1,15 @@
+SPDX-License-Identifier: Zlib
+SPDX-FileNotice: retrods local patch, not part of upstream libretro-common.
+
+Use a bare `static __inline__` instead of `static INLINE`.
+
+These headers write `static INLINE ...`, which requires INLINE to be a *bare*
+inline specifier. Cores routinely redefine INLINE for their own code - fmsx does
+`#undef INLINE` + `#define INLINE static inline`, and Genesis-Plus-GX ends up
+with C99 `inline` depending on include order - and libretro-common then either
+fails to compile (`static static inline`) or emits duplicate globals.
+
+Replacing the macro use with the specifier directly makes libretro-common
+independent of whatever a core does with INLINE.
+
+Applied with: patch -p1 < patches/libretro-common/0001-inline-specifier.patch

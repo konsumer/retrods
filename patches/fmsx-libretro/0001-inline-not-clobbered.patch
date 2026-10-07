@@ -1,0 +1,17 @@
+--- a/fMSX/MSX.h
++++ b/fMSX/MSX.h
+@@ -31,12 +31,13 @@
+ /** C99 standard has "inline", but older compilers've used  **/
+ /** __inline for the same purpose.                          **/
+ /*************************************************************/
+-#undef INLINE
++#ifndef INLINE
+ #ifdef __C99__
+ #define INLINE static inline
+ #else
+ #define INLINE static __inline
+ #endif
++#endif
+ 
+ #ifdef __cplusplus
+ extern "C" {

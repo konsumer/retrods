@@ -1,0 +1,12 @@
+SPDX-License-Identifier: Zlib
+SPDX-FileNotice: retrods local patch, not part of upstream gambatte-libretro.
+
+Guard the global NetSerial instance with HAVE_NETWORK.
+
+The body of the serial-link setup is already inside `#ifdef HAVE_NETWORK`, but
+the file-scope `static NetSerial gb_net_serial;` is not. Even with netplay
+disabled that definition still emits a constructor/destructor reference, which
+fails to link once net_serial.cpp is dropped (netplay needs BSD sockets, which
+the DS does not have).
+
+Applied with: patch -p1 < patches/gambatte-libretro/0001-netplay-optional.patch

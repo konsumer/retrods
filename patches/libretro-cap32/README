@@ -1,0 +1,11 @@
+SPDX-License-Identifier: Zlib
+SPDX-FileNotice: retrods local patch, not part of upstream libretro-cap32.
+
+Guard retro_ui_draw_db() against a NULL surface.
+
+retro_ui_draw_db() is called from retro_load_game() and computer_reset(), but
+keyboard_surface is only set to point at real storage by retro_ui_init(). When
+the loaded DSK is not in the core's hash database (game_configuration.is_clean is
+false) it draws into that surface and crashes.
+
+Applied with: patch -p1 < patches/libretro-cap32/0001-draw-db-null-guard.patch

@@ -1,0 +1,8 @@
+SPDX-License-Identifier: Zlib
+SPDX-FileNotice: retrods local patch, not part of upstream libretro-atari800.
+
+sysrom.c includes <dirent.h> without <sys/types.h>. glibc pulls in off_t
+transitively so the upstream build never noticed, but newlib (the DS toolchain)
+does not, and <dirent.h> then fails to compile.
+
+Applied with: patch -p1 < patches/libretro-atari800/0001-sysrom-sys-types.patch

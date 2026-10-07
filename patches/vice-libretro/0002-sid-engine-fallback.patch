@@ -1,0 +1,74 @@
+--- a/vice/src/sid/sid.c
++++ b/vice/src/sid/sid.c
+@@ -550,6 +550,8 @@
+ 
+ bool sid_sound_machine_set_engine_hooks(void)
+ {
++    bool matched = false;
++
+     sidengine = -1;
+ 
+     if (resources_get_int("SidEngine", &sidengine) < 0) {
+@@ -561,28 +563,40 @@
+ #ifdef HAVE_FASTSID
+     if (sidengine == SID_ENGINE_FASTSID) {
+         sid_engine = fastsid_hooks;
++        matched = true;
+     }
+ #endif
+ 
+ #ifdef HAVE_RESID
+     if (sidengine == SID_ENGINE_RESID) {
+         sid_engine = resid_hooks;
++        matched = true;
+     }
+ #if defined(__LIBRETRO__) && (defined(__X64__) || defined(__X64SC__) || defined(__XSCPU64__) || defined(__X128__))
+ #ifdef HAVE_RESID33
+     if (sidengine == SID_ENGINE_RESID33) {
+         sid_engine = resid33_hooks;
++        matched = true;
+     }
+ #endif
+     if (sidengine == SID_ENGINE_RESIDFP) {
+         sid_engine = residfp_hooks;
++        matched = true;
+     }
+ #endif /* __LIBRETRO__ */
+ #endif
+-    if (sidengine >= 0) {
+-        return true;
++    /* retrods: this build compiles reSID out (its 6581 filter tables alone are
++     * 21 MiB of .bss), but the SID-engine resource still defaults to it, so no
++     * branch above matches. Falling through with sid_engine == fakesid_hooks
++     * was still reported as success, which left the machine running the dummy
++     * engine and produced silent audio. Use the engine we do have. */
++#ifdef HAVE_FASTSID
++    if (!matched) {
++        sid_engine = fastsid_hooks;
++        matched = true;
+     }
+-    return false;
++#endif
++    return matched;
+ }
+ 
+ sound_t *sid_sound_machine_open(int chipno)
+--- a/vice/src/sid/sid-resources.c
++++ b/vice/src/sid/sid-resources.c
+@@ -135,7 +135,16 @@
+ #endif
+             break;
+         default:
++            /* retrods: this build has reSID disabled (its 6581 filter tables
++             * alone are 21 MiB), but the SID-engine option still defaults to
++             * it. Returning -1 here made VICE silently keep the dummy engine,
++             * so fall back to FASTSID. */
++#ifdef HAVE_FASTSID
++            engine = SID_ENGINE_FASTSID;
++            break;
++#else
+             return -1;
++#endif
+     }
+ 
+     if (sid_engine_set(engine) < 0) {

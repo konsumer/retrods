@@ -1,0 +1,15 @@
+--- a/libretro/retro_ui.c
++++ b/libretro/retro_ui.c
+@@ -281,6 +281,12 @@
+    if (game_configuration.is_clean)
+       return;
+ 
++   /* retrods: this is called from retro_load_game() and computer_reset(), but
++    * keyboard_surface only points at real storage once retro_ui_init() has run,
++    * so drawing here can dereference NULL and crash the app. */
++   if (keyboard_surface == NULL)
++      return;
++
+    draw_rect(
+       keyboard_surface,
+       retro_video.screen_crop

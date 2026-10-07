@@ -1,0 +1,70 @@
+# SPDX-License-Identifier: Zlib
+#
+# Host test harness: builds the same frontend and cores for the dev machine and
+# runs a ROM through them. No display or sound card needed — frames and audio
+# are dumped to build-host/out.
+#
+#   make -f Makefile.host
+#   ./tests/run-host.sh
+
+BUILD := build-host
+BIN   := $(BUILD)/retrods-host
+
+CC      ?= cc
+CXX     ?= c++
+LD_R    ?= ld
+NM      ?= nm
+OBJCOPY ?= objcopy
+
+WARN := -Wall -Wextra -Wno-unused-parameter
+RD_CFLAGS   := -O2 -g $(WARN)
+RD_ASFLAGS  := -O2 -g
+RD_CXXFLAGS := -O2 -g $(WARN) -fno-exceptions -fno-rtti
+
+include common.mk
+
+POSIX_FE_SRCS := src/main.c src/libretro_host.c src/registry.c src/posix/platform_posix.c
+FE_OBJS := $(patsubst src/%.c,$(BUILD)/fe/%.o,$(POSIX_FE_SRCS))
+FE_CFLAGS := $(RD_CFLAGS) -Isrc -I$(BUILD)/gen -I$(LIBRETRO_COMMON_DIR)/include
+
+include core_rules.mk
+
+# The selected core set can come from the command line, so a stamp of it is what
+# tells make to relink when CORES changes.
+CORES_STAMP := $(BUILD)/.cores
+
+.PHONY: FORCE
+FORCE:
+
+$(CORES_STAMP): FORCE
+	@mkdir -p $(@D)
+	@printf '%s' "$(CORES)" | cmp -s - $@ || printf '%s' "$(CORES)" > $@
+
+.DEFAULT_GOAL := all
+
+.PHONY: all clean run registry
+
+.SECONDARY:
+
+all: $(BIN)
+
+$(BUILD)/fe/%.o: src/%.c
+	@mkdir -p $(@D)
+	$(CC) $(FE_CFLAGS) -c -o $@ $<
+
+$(BIN): $(FE_OBJS) $(RD_CORE_OBJS) $(RD_LC_OBJS) | $(CORES_STAMP)
+	$(CXX) -no-pie -o $@ $^ -lm
+
+run: $(BIN)
+	./tests/run-host.sh
+
+# Print the resolved core -> extension table (the same RD_ENTRY list that is
+# compiled into the frontend) for the current CORES. scripts/gen-settings.py
+# uses this so the Pico Launcher associations cannot drift from the registry.
+registry:
+	@cat $(GEN_DIR)/core_registry.inc
+
+clean:
+	rm -rf $(BUILD)
+
+$(BUILD)/fe/registry.o: $(GEN_DIR)/core_registry.inc

@@ -1,0 +1,10 @@
+--- a/atari800/src/sysrom.c
++++ b/atari800/src/sysrom.c
+@@ -26,6 +26,7 @@
+ 
+ #include <ctype.h>
+ #ifdef HAVE_DIRENT_H
++#include <sys/types.h>
+ #include <dirent.h>
+ #endif
+ #include <stdarg.h>
