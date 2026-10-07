@@ -168,7 +168,7 @@ static void bench_sd(void)
         u32 start, dur;
         size_t n;
 
-        t_start();
+        timerStart(0, ClockDivider_1024, 0, NULL);
         start = (u32)TIMER_DATA(0);
         n = fread(buf, 1, cap, f);
         dur = (u32)TIMER_DATA(0) - start;
@@ -176,8 +176,8 @@ static void bench_sd(void)
         if (dur > 0)
             say("sd read: %lu KiB in %lu us = %lu KiB/s  (%s)",
                 (unsigned long)(n / 1024),
-                (unsigned long)((u64)dur * 1000000ull / 524288ull),
-                (unsigned long)((u64)n * 524288ull / dur / 1024),
+                (unsigned long)((u64)dur * 1000000ull / 32768ull),
+                (unsigned long)((u64)n * 32768ull / dur / 1024),
                 path);
         free(buf);
     }
@@ -192,9 +192,13 @@ static void bench_frame(void)
     u32 start, dur;
     unsigned frames = 0;
 
-    t_start();
+    // Divider 1024 (32768 Hz): TIMER0 is 16-bit, so at divider 64 it wraps
+    // every 0.125 s and a quarter-second threshold can never be reached --
+    // which is what made this loop forever. The frame cap means a broken
+    // timer degrades the measurement instead of hanging the app.
+    timerStart(0, ClockDivider_1024, 0, NULL);
     start = (u32)TIMER_DATA(0);
-    while ((u32)TIMER_DATA(0) - start < 524288u / 4) {   // a quarter second
+    while (frames < 30000 && (u32)TIMER_DATA(0) - start < 32768u / 4) {
         scanKeys();
         (void)keysHeld();
         memset(fb, frames, sizeof(fb));
@@ -202,9 +206,10 @@ static void bench_frame(void)
         frames++;
     }
     dur = (u32)TIMER_DATA(0) - start;
-    say("frontend overhead: %lu us/frame of a 16666 us budget (%lu fps ceiling)",
-        (unsigned long)((u64)dur * 1000000ull / 524288ull / frames),
-        (unsigned long)(frames * 4));
+    if (frames)
+        say("frontend overhead: %lu us/frame of a 16666 us budget (%lu fps ceiling)",
+            (unsigned long)((u64)dur * 1000000ull / 32768ull / frames),
+            (unsigned long)(frames * 4));
 }
 
 int main(void)
@@ -282,6 +287,17 @@ int main(void)
     bench_frame();
     say("");
 
+    // The display benchmarks drew into VRAM_A; put it back rather than leaving
+    // the console showing a test pattern.
+    {
+        static u16 blank[256 * 192];
+        memset(blank, 0, sizeof(blank));
+        dmaCopy(blank, VRAM_A, sizeof(blank));
+    }
+
+    say("");
+    say("== results (also in /diag.txt) ==");
+
     say("press START to exit");
 
     for (;;) {
@@ -306,7 +322,7 @@ int main(void)
             }
         }
 
-        printf("\x1b[24;0Hheld: %-60s", held);
+        printf("\x1b[22;0Hheld: %-60s", held);
 
         if (keysDown() & KEY_START)
             break;
