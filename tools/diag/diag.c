@@ -123,13 +123,27 @@ static void bench_audio(void)
 
 static void bench_memory(void)
 {
-    size_t lo = 0, hi = 32u << 20, best = 0;
-    for (int i = 0; i < 24; i++) {
+    // newlib's malloc can return space that is not backed by real RAM on a DS,
+    // so an allocation is only counted when every page of it accepts a write.
+    size_t lo = 0, hi = 8u << 20, best = 0;
+
+    for (int i = 0; i < 22; i++) {
         size_t mid = (lo + hi) / 2;
-        void *p = malloc(mid);
-        if (p) { free(p); best = mid; lo = mid; } else { hi = mid; }
+        unsigned char *p = malloc(mid);
+        bool usable = false;
+
+        if (p) {
+            usable = true;
+            for (size_t off = 0; off + 4096 <= mid; off += 4096) {
+                p[off] = 0x5A;
+                if (p[off] != 0x5A) { usable = false; break; }
+            }
+            free(p);
+        }
+
+        if (usable) { best = mid; lo = mid; } else { hi = mid; }
     }
-    say("largest malloc: %lu KiB", (unsigned long)(best / 1024));
+    say("largest usable malloc: %lu KiB", (unsigned long)(best / 1024));
 }
 
 static void bench_sd(void)
@@ -162,7 +176,7 @@ static void bench_sd(void)
     FILE *f = fopen(path, "rb");
     if (!f) { say("sd read: open failed: %s", path); return; }
 
-    size_t cap = 4u << 20;
+    size_t cap = 1u << 20;
     void *buf = malloc(cap);
     if (buf) {
         u32 start, dur;
@@ -298,31 +312,43 @@ int main(void)
     say("");
     say("== results (also in /diag.txt) ==");
 
-    say("press START to exit");
+    // The input test comes last, as a fixed grid redrawn in place: printing it
+    // as log lines would scroll the console and push the earlier results away.
+    say("");
+    say("== input ==");
+    say("press buttons; the grid below updates. START exits.");
+
+    static const struct { uint16_t key; const char *name; } grid[12] = {
+        { KEY_UP, "UP" },       { KEY_X, "X" },
+        { KEY_DOWN, "DOWN" },   { KEY_B, "B" },
+        { KEY_LEFT, "LEFT" },   { KEY_Y, "Y" },
+        { KEY_RIGHT, "RIGHT" }, { KEY_A, "A" },
+        { KEY_L, "L" },         { KEY_R, "R" },
+        { KEY_START, "START" }, { KEY_SELECT, "SELECT" },
+    };
+
+    for (unsigned row = 0; row < 6; row++) {
+        uint16_t a = keysHeld() & grid[row * 2].key;
+        uint16_t b = keysHeld() & grid[row * 2 + 1].key;
+        printf("\x1b[%u;0H%-8s: 0          %-8s: 0", 17 + row,
+               grid[row * 2].name, grid[row * 2 + 1].name);
+        (void)a; (void)b;
+    }
 
     for (;;) {
-        static const struct { uint16_t key; const char *name; } names[] = {
-            { KEY_A, "A" }, { KEY_B, "B" }, { KEY_X, "X" }, { KEY_Y, "Y" },
-            { KEY_UP, "UP" }, { KEY_DOWN, "DOWN" }, { KEY_LEFT, "LEFT" },
-            { KEY_RIGHT, "RIGHT" }, { KEY_L, "L" }, { KEY_R, "R" },
-            { KEY_START, "START" }, { KEY_SELECT, "SELECT" },
-            { KEY_TOUCH, "TOUCH" },
-        };
-        char held[128] = "";
         uint16_t keys;
 
         swiWaitForVBlank();
         scanKeys();
         keys = keysHeld();
 
-        for (unsigned i = 0; i < sizeof(names) / sizeof(names[0]); i++) {
-            if (keys & names[i].key) {
-                strncat(held, names[i].name, sizeof(held) - strlen(held) - 2);
-                strncat(held, " ", sizeof(held) - strlen(held) - 1);
-            }
+        for (unsigned row = 0; row < 6; row++) {
+            // Redraw in place with cursor moves only: no newline, no scroll.
+            printf("\x1b[%u;0H%-8s: %u", 17 + row, grid[row * 2].name,
+                   (keys & grid[row * 2].key) ? 1 : 0);
+            printf("\x1b[%u;18H%-8s: %u", 17 + row, grid[row * 2 + 1].name,
+                   (keys & grid[row * 2 + 1].key) ? 1 : 0);
         }
-
-        printf("\x1b[22;0Hheld: %-60s", held);
 
         if (keysDown() & KEY_START)
             break;
