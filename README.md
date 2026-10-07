@@ -505,6 +505,9 @@ tests/run-roms.sh     per-core ROM matrix + extension -> core mapping check
 docs/TESTING.md       what is and is not verified, and how to test
 docs/BIOS.md          firmware layout, per-core filenames, where to get them
 docs/HARDWARE-TESTING.md  procedure and checklist for testing on a real console
+
+~Desktop/ds_example/  a separate 4-file example of a minimal DS cart (Docker,
+                      Makefile, one C file) to show people how this works
 ```
 
 ## Licence
