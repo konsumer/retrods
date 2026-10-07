@@ -22,6 +22,30 @@ _pico/settings.json         the associations that launch them
 
 Boot the console, open Pico Launcher, and you should see the 31 apps listed.
 
+## Step 0: the diagnostic app
+
+`apps/diag.nds` measures the subsystems everything else depends on and writes
+`/diag.txt` to the card. **Run this first** — it needs no core, no firmware and
+no ROM, and its numbers decide how the rest should be built rather than guessed
+at. It is built with the same toolchain and flags as the emulator apps, so what
+it measures is what they experience.
+
+| measurement | what it decides |
+| --- | --- |
+| held buttons | whether the input path is alive at all; if pressing does nothing, nothing else matters |
+| vblank rate | the console's real refresh rate (should be ~59.8) |
+| 1e6 multiply-add | a machine-speed fingerprint — useful for comparing DS against DSi |
+| blit 256x192 / 320x240 / 384x272 | what the CPU scaler costs per frame, out of a 16666 us budget |
+| dmaCopy 98 KiB | the framebuffer upload |
+| audio chunk starts | how long it takes to hand a second of chunks to the ARM7 — a stutter proxy |
+| largest malloc | the real RAM budget, which is what makes large ROMs a problem |
+| sd read | MiB/s from the card, and therefore how long a load takes |
+| frontend overhead | our per-frame total, spent before any emulation happens |
+
+Send back `/diag.txt`, or photograph the bottom screen. Those numbers turn
+"slow" into "the blit costs 2 ms and the core has 14 ms to work with", which is
+the difference between fixing it and guessing again.
+
 ## A. Plumbing (do these first)
 
 1. **An app launches with its ROM.** Open `roms/nes/Zelda II - The Adventure of
