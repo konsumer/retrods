@@ -1,0 +1,51 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  host-suite:
+    name: host test suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The cores are fetched, not vendored, so every job starts here.
+      - name: fetch cores
+        run: ./scripts/fetch-cores.sh
+
+      # Builds the same src/ and core sources for the host with a headless
+      # backend, then runs generated ROMs through every core plus the
+      # save-state round-trip. No ROM collection needed.
+      - name: run tests
+        run: ./tests/run-host.sh
+
+  apps:
+    name: build the ds apps
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/fetch-cores.sh
+
+      # 30 apps, DS mode where a core fits 4 MiB and DSi mode where it does not.
+      - name: build apps
+        run: ./scripts/build-apps.sh
+
+      - name: assemble the sd layout
+        run: |
+          ./scripts/gen-settings.py
+          ls -la apps/*.nds | wc -l
+          du -sh apps
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: retrods-apps
+          path: apps/*.nds
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: retrods-launcher-settings
+          path: docs/settings-example.json
