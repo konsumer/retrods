@@ -98,7 +98,7 @@ To check an app boots, boot it in melonDS the same way as the multi-core ROM —
 each app registers a single core, so it prints a one-line core list and holds:
 
 ```sh
-RetroArch -L melonds_libretro.dylib apps/retrods-quicknes.nds \
+"$RA" -L melonds_libretro.dylib apps/retrods-quicknes.nds \
     --appendconfig=append.cfg --max-frames=240 --max-frames-ss --max-frames-ss-path=shot.png
 ```
 
@@ -258,6 +258,8 @@ Where the feature is already `#ifdef`-guarded upstream, switch it off in
 ```sh
 # once: get RetroArch and the core matching its architecture
 brew install --cask retroarch                       # x86_64 build at time of writing
+# the cask installs an app bundle, not a command on PATH
+RA=/Applications/RetroArch.app/Contents/MacOS/RetroArch
 curl -LO https://buildbot.libretro.com/nightly/apple/osx/x86_64/latest/melonds_libretro.dylib.zip
 unzip melonds_libretro.dylib.zip
 
@@ -265,7 +267,7 @@ unzip melonds_libretro.dylib.zip
 # booting and leaves a blank capture. Disable that first:
 printf 'pause_nonactive = "false"\n' > append.cfg
 
-RetroArch -L melonds_libretro.dylib retrods.nds \
+"$RA" -L melonds_libretro.dylib retrods.nds \
     --appendconfig=append.cfg --max-frames=240 \
     --max-frames-ss --max-frames-ss-path=shot.png
 ```
