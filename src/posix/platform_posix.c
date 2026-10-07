@@ -194,7 +194,7 @@ void rd_plat_audio(const int16_t *stereo, size_t frames, unsigned sample_rate)
 // The harness has no input device, but the hotkeys have to be testable, so
 // RD_INPUT scripts button combos by frame number:
 //
-//     RD_INPUT="60:save,120:load,180:shot,90-120:fast"
+//     RD_INPUT="60:save,120:load,180:shot,90-120:fast,200-260:start"
 //
 // each entry being "<frame>:<action>" or "<first>-<last>:<action>". The named
 // combo is applied for exactly those frames, which is what a real press looks
@@ -249,6 +249,18 @@ static void input_add(unsigned first, unsigned last, const char *action)
     if (!strcmp(action, "load"))   st->buttons[n++] = RD_JOY_SELECT;
     if (!strcmp(action, "shot"))   st->buttons[n++] = RD_JOY_X;
     if (!strcmp(action, "fast"))   st->buttons[n++] = RD_JOY_A;
+    /* Plain button names, for testing that a core actually receives input:
+       RD_INPUT="60-90:start" holds START across those frames. */
+    if (!strcmp(action, "a"))      st->buttons[n++] = RD_JOY_A;
+    if (!strcmp(action, "b"))      st->buttons[n++] = RD_JOY_B;
+    if (!strcmp(action, "x"))      st->buttons[n++] = RD_JOY_X;
+    if (!strcmp(action, "y"))      st->buttons[n++] = RD_JOY_Y;
+    if (!strcmp(action, "start"))  st->buttons[n++] = RD_JOY_START;
+    if (!strcmp(action, "select")) st->buttons[n++] = RD_JOY_SELECT;
+    if (!strcmp(action, "up"))     st->buttons[n++] = 4;
+    if (!strcmp(action, "down"))   st->buttons[n++] = 5;
+    if (!strcmp(action, "left"))   st->buttons[n++] = 6;
+    if (!strcmp(action, "right"))  st->buttons[n++] = 7;
     if (!strcmp(action, "quit")) {
         st->buttons[n++] = RD_JOY_L;
         st->buttons[n++] = RD_JOY_R;

@@ -28,6 +28,8 @@ static unsigned s_snd_chunk;
 static unsigned s_snd_rate = 44100;
 
 static bool s_quit;
+static uint16_t s_colmap[256];
+static unsigned s_colmap_w, s_colmap_h;
 static bool s_joy[16];
 
 // Key mapping, indexed by RETRO_DEVICE_ID_JOYPAD_* value.
@@ -206,6 +208,20 @@ void rd_plat_video(const void *data, unsigned width, unsigned height,
     oy = (FB_H - dh) / 2;
     bpp = (fmt == RD_PIXEL_XRGB8888) ? 4 : 2;
 
+    if (width != s_colmap_w || height != s_colmap_h) {
+        /* The column mapping only changes when the geometry does, so build it
+           once: the inner loop then costs a table read instead of a 64-bit
+           divide per pixel, which matters at 67 MHz. */
+        for (unsigned x = 0; x < width; x++) {
+            unsigned sx = (unsigned)(((uint64_t)x << 16) / scale);
+            if (sx >= width)
+                sx = width - 1;
+            s_colmap[x] = (uint16_t)sx;
+        }
+        s_colmap_w = width;
+        s_colmap_h = height;
+    }
+
     memset(s_fb, 0, sizeof(s_fb));
 
     for (unsigned y = 0; y < dh; y++) {
@@ -219,14 +235,8 @@ void rd_plat_video(const void *data, unsigned width, unsigned height,
         src = (const uint8_t *)data + (size_t)srow * pitch;
         dst = s_fb + (size_t)(oy + y) * FB_W + ox;
 
-        for (unsigned x = 0; x < dw; x++) {
-            unsigned scol = (unsigned)(((uint64_t)x << 16) / scale);
-
-            if (scol >= width)
-                scol = width - 1;
-
-            dst[x] = convert(src + (size_t)scol * bpp, fmt);
-        }
+        for (unsigned x = 0; x < dw; x++)
+            dst[x] = convert(src + (size_t)s_colmap[x] * bpp, fmt);
     }
 
     dmaCopy(s_fb, VRAM_A, sizeof(s_fb));
@@ -325,6 +335,11 @@ void rd_plat_audio(const int16_t *stereo, size_t frames, unsigned sample_rate)
 
 void rd_plat_poll_input(void)
 {
+    // libnds only refreshes the key state when scanKeys() is called: without
+    // this, keysHeld() returns whatever was scanned last, which before the
+    // first hold screen is nothing at all. That is why no core saw any input.
+    scanKeys();
+
     uint16_t keys = keysHeld();
 
     for (unsigned i = 0; i < 16; i++)

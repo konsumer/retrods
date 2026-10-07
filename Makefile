@@ -46,7 +46,10 @@ endif
 # (keypad, touch, and the sound driver).
 ARM7ELF ?= $(BLOCKSDS)/sys/arm7/main_core/arm7_minimal.elf
 
-COMMONFLAGS := $(ARCH) -O2 -specs=$(SPECS) -DARM9 -D__NDS__ -D__BLOCKSDS__
+# Emulators are the one place where -O3 pays for itself; -O2 cost measurable
+# frame rate on a 67 MHz ARM9. No -ffast-math: several cores need float
+# exactness.
+COMMONFLAGS := $(ARCH) -O3 -funroll-loops -fomit-frame-pointer -specs=$(SPECS) -DARM9 -D__NDS__ -D__BLOCKSDS__
 RD_CFLAGS   := $(COMMONFLAGS)
 RD_ASFLAGS  := $(ARCH) -specs=$(SPECS) -DARM9 -D__NDS__ -D__BLOCKSDS__
 RD_CXXFLAGS := $(COMMONFLAGS) -fno-exceptions -fno-rtti -fno-threadsafe-statics

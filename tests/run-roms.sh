@@ -24,8 +24,13 @@ for d in "$@"; do
     SEARCH="$SEARCH /roms$i"
     # the system directory must be the path *inside* the container, not the
     # host path, or firmware-dependent cores cannot find their BIOS
+    # The apps look for firmware at <apps dir>/bios, so accept that layout as
+    # well as <roms>/bios: a card built by scripts/build-apps.sh has the former.
     if [ -z "$SYS_DIR" ] && [ -d "$d/bios" ]; then
         SYS_DIR="/roms$i/bios"
+    fi
+    if [ -z "$SYS_DIR" ] && [ -d "$d/apps/bios" ]; then
+        SYS_DIR="/roms$i/apps/bios"
     fi
     i=$((i + 1))
 done
