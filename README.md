@@ -504,6 +504,7 @@ tests/run-host.sh     end-to-end host smoke test
 tests/run-roms.sh     per-core ROM matrix + extension -> core mapping check
 docs/TESTING.md       what is and is not verified, and how to test
 docs/BIOS.md          firmware layout, per-core filenames, where to get them
+docs/HARDWARE-TESTING.md  procedure and checklist for testing on a real console
 ```
 
 ## Licence
