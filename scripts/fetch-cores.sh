@@ -13,14 +13,15 @@ fetch() {
     dir="$1"
     repo="$2"
     ref="$3"
+    org="${4:-libretro}"
 
     if [ -d "third_party/$dir" ] && [ -n "$(ls -A "third_party/$dir" 2>/dev/null)" ]; then
         echo "third_party/$dir: present"
         return
     fi
 
-    echo "third_party/$dir: cloning libretro/$repo @ $ref"
-    git clone --quiet --recursive "https://github.com/libretro/$repo.git" "third_party/$dir"
+    echo "third_party/$dir: cloning $org/$repo @ $ref"
+    git clone --quiet --recursive "https://github.com/$org/$repo.git" "third_party/$dir"
     git -C "third_party/$dir" checkout --quiet "$ref"
     git -C "third_party/$dir" submodule update --init --recursive --quiet
 }
@@ -71,3 +72,9 @@ echo "applying local patches..."
 sh scripts/apply-patches.sh
 
 echo "cores/ describes how each one is built; see common.mk for CORES."
+
+# The two cores retrods needed ports for, as separate projects: no libretro core
+# existed for the TI-99/4A or for the Tandy CoCo / Dragon / MC-10. Both are
+# ordinary libretro cores with their own CI and releases, fetched like the rest.
+fetch ti99-libretro               ti99-libretro              29bb68a                          konsumer
+fetch xroar-libretro              xroar-libretro             44be93e                          konsumer

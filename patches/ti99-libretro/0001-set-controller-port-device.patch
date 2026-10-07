@@ -1,0 +1,13 @@
+diff --git a/src/libretro.cpp b/src/libretro.cpp
+index 2d23ff1..8a3cbc5 100644
+--- a/src/libretro.cpp
++++ b/src/libretro.cpp
+@@ -629,6 +629,8 @@ void retro_set_audio_sample ( retro_audio_sample_t cb ) { ( void ) cb; }
+ void retro_set_audio_sample_batch ( retro_audio_sample_batch_t cb ) { g_audio = cb; }
+ void retro_set_input_poll ( retro_input_poll_t cb ) { g_input_poll = cb; }
+ void retro_set_input_state ( retro_input_state_t cb ) { g_input_state = cb; }
++void retro_set_controller_port_device ( unsigned port, unsigned device )
++{ ( void ) port; ( void ) device; }
+ 
+ void retro_init ( void )
+ {

@@ -463,21 +463,16 @@ preprocessor can never see them.
   `HAVE_CHD=0`, so only HuCard images work.
 * **`vecx`, `beetle_supergrafx` and `cap32`** are large; they fit only in a
   DSi-mode build or a DS build with few other cores.
-* **Systems with no libretro core at all**: the CoCo/Dragon/MC-10 and the
-  TI-99/4A. Two ports were started as separate projects, because no libretro core
-  exists for either and both are ports of desktop emulators rather than wrappers:
+* **The two systems that had no libretro core at all** now have one, as separate
+  projects with their own CI and releases:
 
-  | project | upstream | state |
-  | ------- | -------- | ----- |
-  | `~/Desktop/ti99-libretro` | ti99sim (C++, GPL-2) | **the libretro core builds** (`make libretro` → 250 KB `.so`), loads `994aROM.bin`/`994aGROM.bin`, runs frames and renders all four VDP modes. **The frame is black**: the CPU does not touch the VDP, which is the one open bug. `tools/bootcheck` reproduces it in 30 s (`TI99_DEBUG=1` prints mode and R0-R7 per frame). CI builds and attaches on release. |
-  | `~/Desktop/xroar-libretro` | XRoar (C, GPL-3) | vendored and pinned, CI valid, port plan in its README. **No glue written yet.** Covers CoCo, Dragon *and* MC-10 — three systems for one port. |
+  | project | upstream | state in retrods |
+  | ------- | -------- | ---------------- |
+  | `konsumer/ti99-libretro` | ti99sim (C++, GPL-2) | **fetched and building**: `third_party/ti99-libretro` at a pinned commit, `cores/ti99.mk` (24 C++ sources), `cores/ti99.extra.mk` for `-fexceptions`, and `patches/ti99-libretro/` for the one entry point it was missing. Not yet in the app set or the matrix: there is no TI cartridge in the collection to boot-test against, and the core rejects a dummy one. |
+  | `konsumer/xroar-libretro` | XRoar (C, GPL-3) | fetched and pinned, but its file list comes from its own `configure`, so `gen-core-mk.py` finds nothing — `cores/xroar.mk` has to be written from the `CORE_SRCS` list in its Makefile (~85 files plus its portalib). Covers CoCo, Dragon *and* MC-10. |
 
-  Neither is wired into retrods yet. When one works the integration is the same
-  path every other core took: a pinned `scripts/fetch-cores.sh` line,
-  `scripts/gen-core-mk.py`, a `cores/<name>.extra.mk`, and `patches/<core>/` for
-  anything DS-specific. On a DS these will need patches the desktop build does
-  not: XRoar's 6809 core and ti99sim's TMS9900 both assume a host's `int` width
-  in places.
+  Neither is in `scripts/build-apps.sh` yet, so the shipped apps and the test
+  matrix are unchanged.
 
 * **`.dsk`, `.bin` and `.rom` are ambiguous** — CPC disks vs MSX disks, Mega
   Drive vs Atari 8-bit `.bin`, MSX vs Atari 8-bit `.rom`. Both cores claim the
