@@ -42,6 +42,11 @@ it measures is what they experience.
 | sd read | MiB/s from the card, and therefore how long a load takes |
 | frontend overhead | our per-frame total, spent before any emulation happens |
 
+When it finishes, the main (top) screen turns **green** and the bottom screen
+shows the headline numbers above a live input grid — press buttons and their
+values flip 0 to 1; START exits. Green means every benchmark returned, so a
+photograph answers "did it finish" too.
+
 Send back `/diag.txt`, or photograph the bottom screen. Those numbers turn
 "slow" into "the blit costs 2 ms and the core has 14 ms to work with", which is
 the difference between fixing it and guessing again.

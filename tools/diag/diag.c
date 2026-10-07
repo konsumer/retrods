@@ -135,7 +135,10 @@ static void bench_memory(void)
 {
     // newlib's malloc can return space that is not backed by real RAM on a DS,
     // so an allocation is only counted when every page of it accepts a write.
-    size_t lo = 0, hi = 8u << 20, best = 0;
+    // Cap well inside the DS's 4 MiB: probing above it means malloc hands back
+    // address space that does not exist, and the page-write check below then
+    // faults -- which resets the console. Writing inside real RAM is safe.
+    size_t lo = 0, hi = 3u << 20, best = 0;
 
     for (int i = 0; i < 22; i++) {
         size_t mid = (lo + hi) / 2;
@@ -318,6 +321,16 @@ int main(void)
     // The log has scrolled; show the headline numbers and the input grid
     // together, which is what the emulator apps' behaviour depends on. The
     // full log is in /diag.txt.
+    // Paint the main screen: this is the video test (it proves the framebuffer
+    // path works) and it doubles as a completion marker -- green means every
+    // benchmark returned, so "did it finish" is answerable from a screenshot.
+    {
+        static u16 green[256 * 192];
+        for (unsigned i = 0; i < 256 * 192; i++)
+            green[i] = RGB15(0, 31, 0);
+        dmaCopy(green, VRAM_A, sizeof(green));
+    }
+
     consoleClear();
 
     printf("retrods diagnostic\n\n");
