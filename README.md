@@ -513,6 +513,8 @@ docs/BIOS.md          firmware layout, per-core filenames, where to get them
 
 ## Licence
 
-Zlib, matching the DS homebrew ecosystem. Vendored libretro cores keep their
-own licences (smsplus-gx is non-commercial; check before redistributing ROMs
-built with it).
+Zlib (see [LICENSE](LICENSE)), matching the DS homebrew ecosystem; every source
+file carries the SPDX tag. The cores are not vendored here — `scripts/fetch-cores.sh`
+clones them from their own repositories at pinned commits — and they keep their
+own licences, which are not all as permissive: smsplus-gx is non-commercial, so
+check before redistributing a ROM built with it.
