@@ -18,6 +18,12 @@
 
 static FILE *g_log;
 
+// The headline results, kept so they can be shown alongside the input grid
+// after the log has scrolled: the full log is in /diag.txt.
+static double g_vblank_hz;
+static unsigned long g_blit256, g_blit320, g_front_us;
+static unsigned long g_malloc_kb, g_sd_kbs;
+
 static void say(const char *fmt, ...)
 {
     char line[192];
@@ -80,8 +86,12 @@ static void bench_blit(unsigned w, unsigned h)
     }
 
     dur = (u32)TIMER_DATA(0) - start;
-    say("blit %ux%u -> 256x192: %lu us/frame", w, h,
-        (unsigned long)((u64)dur * 1000000ull / 524288ull / 10));
+    {
+        unsigned long us = (unsigned long)((u64)dur * 1000000ull / 524288ull / 10);
+        say("blit %ux%u -> 256x192: %lu us/frame", w, h, us);
+        if (w == 256) g_blit256 = us;
+        if (w == 320) g_blit320 = us;
+    }
     (void)pitch;
 }
 
@@ -143,7 +153,8 @@ static void bench_memory(void)
 
         if (usable) { best = mid; lo = mid; } else { hi = mid; }
     }
-    say("largest usable malloc: %lu KiB", (unsigned long)(best / 1024));
+    g_malloc_kb = (unsigned long)(best / 1024);
+    say("largest usable malloc: %lu KiB", g_malloc_kb);
 }
 
 static void bench_sd(void)
@@ -187,12 +198,13 @@ static void bench_sd(void)
         n = fread(buf, 1, cap, f);
         dur = (u32)TIMER_DATA(0) - start;
 
-        if (dur > 0)
+        if (dur > 0) {
+            g_sd_kbs = (unsigned long)((u64)n * 32768ull / dur / 1024);
             say("sd read: %lu KiB in %lu us = %lu KiB/s  (%s)",
                 (unsigned long)(n / 1024),
                 (unsigned long)((u64)dur * 1000000ull / 32768ull),
-                (unsigned long)((u64)n * 32768ull / dur / 1024),
-                path);
+                g_sd_kbs, path);
+        }
         free(buf);
     }
     fclose(f);
@@ -220,10 +232,11 @@ static void bench_frame(void)
         frames++;
     }
     dur = (u32)TIMER_DATA(0) - start;
-    if (frames)
+    if (frames) {
+        g_front_us = (unsigned long)((u64)dur * 1000000ull / 32768ull / frames);
         say("frontend overhead: %lu us/frame of a 16666 us budget (%lu fps ceiling)",
-            (unsigned long)((u64)dur * 1000000ull / 32768ull / frames),
-            (unsigned long)(frames * 4));
+            g_front_us, (unsigned long)(frames * 4));
+    }
 }
 
 int main(void)
@@ -263,6 +276,7 @@ int main(void)
             (unsigned long)((u64)dur * 1000000ull / 32768ull),
             (unsigned long)(frames * 2),
             (unsigned long)((frames * 200) % 100));
+        g_vblank_hz = (double)frames * 2.0;
     }
     say("");
 
@@ -301,22 +315,19 @@ int main(void)
     bench_frame();
     say("");
 
-    // The display benchmarks drew into VRAM_A; put it back rather than leaving
-    // the console showing a test pattern.
-    {
-        static u16 blank[256 * 192];
-        memset(blank, 0, sizeof(blank));
-        dmaCopy(blank, VRAM_A, sizeof(blank));
-    }
+    // The log has scrolled; show the headline numbers and the input grid
+    // together, which is what the emulator apps' behaviour depends on. The
+    // full log is in /diag.txt.
+    consoleClear();
 
-    say("");
-    say("== results (also in /diag.txt) ==");
-
-    // The input test comes last, as a fixed grid redrawn in place: printing it
-    // as log lines would scroll the console and push the earlier results away.
-    say("");
-    say("== input ==");
-    say("press buttons; the grid below updates. START exits.");
+    printf("retrods diagnostic\n\n");
+    printf(" vblank    %5.1f Hz\n", g_vblank_hz);
+    printf(" blit 256  %5lu us/frame\n", g_blit256);
+    printf(" blit 320  %5lu us/frame\n", g_blit320);
+    printf(" frontend  %5lu us/frame\n", g_front_us);
+    printf(" malloc    %5lu KiB\n", g_malloc_kb);
+    printf(" sd read   %5lu KiB/s\n", g_sd_kbs);
+    printf("\n hold buttons:\n");
 
     static const struct { uint16_t key; const char *name; } grid[12] = {
         { KEY_UP, "UP" },       { KEY_X, "X" },
@@ -326,14 +337,13 @@ int main(void)
         { KEY_L, "L" },         { KEY_R, "R" },
         { KEY_START, "START" }, { KEY_SELECT, "SELECT" },
     };
+    const unsigned base = 14;
 
-    for (unsigned row = 0; row < 6; row++) {
-        uint16_t a = keysHeld() & grid[row * 2].key;
-        uint16_t b = keysHeld() & grid[row * 2 + 1].key;
-        printf("\x1b[%u;0H%-8s: 0          %-8s: 0", 17 + row,
+    for (unsigned row = 0; row < 6; row++)
+        printf("\x1b[%u;2H%-8s: 0   %-8s: 0", base + row,
                grid[row * 2].name, grid[row * 2 + 1].name);
-        (void)a; (void)b;
-    }
+
+    printf("\x1b[23;2HSTART exits");
 
     for (;;) {
         uint16_t keys;
@@ -343,10 +353,11 @@ int main(void)
         keys = keysHeld();
 
         for (unsigned row = 0; row < 6; row++) {
-            // Redraw in place with cursor moves only: no newline, no scroll.
-            printf("\x1b[%u;0H%-8s: %u", 17 + row, grid[row * 2].name,
+            // Cursor moves only: no newline, so the console never scrolls and
+            // the results above stay put.
+            printf("\x1b[%u;2H%-8s: %u", base + row, grid[row * 2].name,
                    (keys & grid[row * 2].key) ? 1 : 0);
-            printf("\x1b[%u;18H%-8s: %u", 17 + row, grid[row * 2 + 1].name,
+            printf("\x1b[%u;18H%-8s: %u", base + row, grid[row * 2 + 1].name,
                    (keys & grid[row * 2 + 1].key) ? 1 : 0);
         }
 
