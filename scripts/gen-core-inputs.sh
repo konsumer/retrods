@@ -41,3 +41,23 @@ if [ -d "$fuse" ]; then
         fi
     fi
 fi
+
+# XRoar: its sources are compiled with -DHAVE_CONFIG_H, and config.h is
+# produced by its own configure step (emulation only -- no toolkit, audio or
+# network backends). Run it here so a fresh fetch can build the core.
+xroar=third_party/xroar-libretro
+if [ -d "$xroar" ] && [ ! -f "$xroar/upstream/src/config.h" ]; then
+    # XRoar ships configure.ac only, so the script is generated first.
+    if [ ! -x "$xroar/upstream/configure" ] && command -v autoreconf >/dev/null 2>&1; then
+        ( cd "$xroar/upstream" && autoreconf -i > /dev/null 2>&1 ) || true
+    fi
+    if [ -x "$xroar/upstream/configure" ]; then
+        ( cd "$xroar/upstream" && ./configure \
+            --without-gtk3 --without-gtk2 --without-sdl2 --without-sdl3 \
+            --without-cocoa --without-coreaudio --without-alsa --without-oss \
+            --without-pulse --without-jack --without-x --without-evdev \
+            --without-joydev --without-zlib --without-libpng --without-sndfile \
+            --disable-trace --enable-snapshot > /dev/null 2>&1 ) || true
+        [ -f "$xroar/upstream/src/config.h" ] && echo "gen-core-inputs: xroar config.h generated"
+    fi
+fi

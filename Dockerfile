@@ -11,7 +11,7 @@ FROM skylyrac/blocksds:slim-latest
 # those generated sources are inputs to the build, not something we can skip.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends git make python3 ca-certificates \
-     build-essential bison flex \
+     build-essential bison flex autoconf automake pkg-config autoconf-archive \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /work

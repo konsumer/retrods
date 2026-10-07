@@ -1,0 +1,129 @@
+# SPDX-License-Identifier: Zlib
+#
+# XRoar's emulation core plus the port's glue. Generated from the file
+# lists in third_party/xroar-libretro/Makefile: XRoar builds those from
+# its own configure step, so scripts/gen-core-mk.py cannot discover them.
+#
+# config.h comes from that configure too; scripts/gen-core-inputs.sh
+# runs it, because -DHAVE_CONFIG_H means nothing without the header.
+
+xroar_DIR := third_party/xroar-libretro
+xroar_EXTS := ccc cas dsk dgn c10 k7
+
+xroar_SRCS := \
+    third_party/xroar-libretro/upstream/src/ao.c \
+    third_party/xroar-libretro/upstream/src/auto_kbd.c \
+    third_party/xroar-libretro/upstream/src/ay891x.c \
+    third_party/xroar-libretro/upstream/src/becker.c \
+    third_party/xroar-libretro/upstream/src/blockdev.c \
+    third_party/xroar-libretro/upstream/src/breakpoint.c \
+    third_party/xroar-libretro/upstream/src/cart.c \
+    third_party/xroar-libretro/upstream/src/clock.c \
+    third_party/xroar-libretro/upstream/src/colourspace.c \
+    third_party/xroar-libretro/upstream/src/crc16.c \
+    third_party/xroar-libretro/upstream/src/crc32.c \
+    third_party/xroar-libretro/upstream/src/crclist.c \
+    third_party/xroar-libretro/upstream/src/debug.c \
+    third_party/xroar-libretro/upstream/src/dkbd.c \
+    third_party/xroar-libretro/upstream/src/events.c \
+    third_party/xroar-libretro/upstream/src/filter.c \
+    third_party/xroar-libretro/upstream/src/fs.c \
+    third_party/xroar-libretro/upstream/src/gdb.c \
+    third_party/xroar-libretro/upstream/src/hexs19.c \
+    third_party/xroar-libretro/upstream/src/hkbd.c \
+    third_party/xroar-libretro/upstream/src/hkbd_joystick.c \
+    third_party/xroar-libretro/upstream/src/joystick.c \
+    third_party/xroar-libretro/upstream/src/keyboard.c \
+    third_party/xroar-libretro/upstream/src/logging.c \
+    third_party/xroar-libretro/upstream/src/machine.c \
+    third_party/xroar-libretro/upstream/src/mc10_cart.c \
+    third_party/xroar-libretro/upstream/src/messenger.c \
+    third_party/xroar-libretro/upstream/src/module.c \
+    third_party/xroar-libretro/upstream/src/mos6551.c \
+    third_party/xroar-libretro/upstream/src/ntsc.c \
+    third_party/xroar-libretro/upstream/src/null/ao_null.c \
+    third_party/xroar-libretro/upstream/src/null/ui_null.c \
+    third_party/xroar-libretro/upstream/src/part.c \
+    third_party/xroar-libretro/upstream/src/path.c \
+    third_party/xroar-libretro/upstream/src/printer.c \
+    third_party/xroar-libretro/upstream/src/ram.c \
+    third_party/xroar-libretro/upstream/src/rom.c \
+    third_party/xroar-libretro/upstream/src/rombank.c \
+    third_party/xroar-libretro/upstream/src/romlist.c \
+    third_party/xroar-libretro/upstream/src/screenshot.c \
+    third_party/xroar-libretro/upstream/src/serialise.c \
+    third_party/xroar-libretro/upstream/src/snapshot.c \
+    third_party/xroar-libretro/upstream/src/sndfile_compat.c \
+    third_party/xroar-libretro/upstream/src/sound.c \
+    third_party/xroar-libretro/upstream/src/symtab.c \
+    third_party/xroar-libretro/upstream/src/tape.c \
+    third_party/xroar-libretro/upstream/src/tape_cas.c \
+    third_party/xroar-libretro/upstream/src/tape_sndfile.c \
+    third_party/xroar-libretro/upstream/src/ui.c \
+    third_party/xroar-libretro/upstream/src/vdg_pal.c \
+    third_party/xroar-libretro/upstream/src/vdg_palette.c \
+    third_party/xroar-libretro/upstream/src/vdisk.c \
+    third_party/xroar-libretro/upstream/src/vdrive.c \
+    third_party/xroar-libretro/upstream/src/vo.c \
+    third_party/xroar-libretro/upstream/src/vo_render.c \
+    third_party/xroar-libretro/upstream/src/xconfig.c \
+    third_party/xroar-libretro/upstream/src/xroar.c \
+    third_party/xroar-libretro/upstream/src/dragon/coco.c \
+    third_party/xroar-libretro/upstream/src/dragon/immunity.c \
+    third_party/xroar-libretro/upstream/src/dragon/deluxecoco.c \
+    third_party/xroar-libretro/upstream/src/dragon/dragon.c \
+    third_party/xroar-libretro/upstream/src/dragon/dragon32.c \
+    third_party/xroar-libretro/upstream/src/dragon/dragon64.c \
+    third_party/xroar-libretro/upstream/src/dragon/dragonpro.c \
+    third_party/xroar-libretro/upstream/src/coco3.c \
+    third_party/xroar-libretro/upstream/src/mc10.c \
+    third_party/xroar-libretro/upstream/src/mc6801/mc6801.c \
+    third_party/xroar-libretro/upstream/src/mc6809/hd6309.c \
+    third_party/xroar-libretro/upstream/src/mc6809/mc6809.c \
+    third_party/xroar-libretro/upstream/src/mc6821.c \
+    third_party/xroar-libretro/upstream/src/mc6847/font-6847.c \
+    third_party/xroar-libretro/upstream/src/mc6847/font-6847t1.c \
+    third_party/xroar-libretro/upstream/src/mc6847/mc6847.c \
+    third_party/xroar-libretro/upstream/src/mc6883.c \
+    third_party/xroar-libretro/upstream/src/samx8.c \
+    third_party/xroar-libretro/upstream/src/tcc1014/font-gime.c \
+    third_party/xroar-libretro/upstream/src/tcc1014/tcc1014.c \
+    third_party/xroar-libretro/upstream/src/deltados.c \
+    third_party/xroar-libretro/upstream/src/dragondos.c \
+    third_party/xroar-libretro/upstream/src/gmc.c \
+    third_party/xroar-libretro/upstream/src/ide.c \
+    third_party/xroar-libretro/upstream/src/idecart.c \
+    third_party/xroar-libretro/upstream/src/mooh.c \
+    third_party/xroar-libretro/upstream/src/mpi.c \
+    third_party/xroar-libretro/upstream/src/nx32.c \
+    third_party/xroar-libretro/upstream/src/orch90.c \
+    third_party/xroar-libretro/upstream/src/rsdos.c \
+    third_party/xroar-libretro/upstream/src/sn76489.c \
+    third_party/xroar-libretro/upstream/src/spi65.c \
+    third_party/xroar-libretro/upstream/src/spi_sdcard.c \
+    third_party/xroar-libretro/upstream/src/wd279x.c \
+    third_party/xroar-libretro/upstream/src/mcx128.c \
+    third_party/xroar-libretro/upstream/portalib/c-ctype.c \
+    third_party/xroar-libretro/upstream/portalib/c-strcasecmp.c \
+    third_party/xroar-libretro/upstream/portalib/c-strncasecmp.c \
+    third_party/xroar-libretro/upstream/portalib/delegate.c \
+    third_party/xroar-libretro/upstream/portalib/intfuncs.c \
+    third_party/xroar-libretro/upstream/portalib/pl-estrcpy.c \
+    third_party/xroar-libretro/upstream/portalib/sds.c \
+    third_party/xroar-libretro/upstream/portalib/sdsx.c \
+    third_party/xroar-libretro/upstream/portalib/slist.c \
+    third_party/xroar-libretro/upstream/portalib/strnlen.c \
+    third_party/xroar-libretro/upstream/portalib/strsep.c \
+    third_party/xroar-libretro/upstream/portalib/xmalloc.c \
+    third_party/xroar-libretro/src/libretro.c \
+    third_party/xroar-libretro/src/libretro_host.c
+
+xroar_DEFINES := \
+    -DHAVE_CONFIG_H
+
+xroar_INCLUDES := \
+    -Ithird_party/xroar-libretro/upstream \
+    -Ithird_party/xroar-libretro/upstream/portalib \
+    -Ithird_party/xroar-libretro/upstream/src \
+    -Ithird_party/xroar-libretro/src \
+    -Ithird_party/xroar-libretro

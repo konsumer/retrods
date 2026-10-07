@@ -469,7 +469,7 @@ preprocessor can never see them.
   | project | upstream | state in retrods |
   | ------- | -------- | ---------------- |
   | `konsumer/ti99-libretro` | ti99sim (C++, GPL-2) | **fetched and building**: `third_party/ti99-libretro` at a pinned commit, `cores/ti99.mk` (24 C++ sources), `cores/ti99.extra.mk` for `-fexceptions`, and `patches/ti99-libretro/` for the one entry point it was missing. Not yet in the app set or the matrix: there is no TI cartridge in the collection to boot-test against, and the core rejects a dummy one. |
-  | `konsumer/xroar-libretro` | XRoar (C, GPL-3) | fetched and pinned, but its file list comes from its own `configure`, so `gen-core-mk.py` finds nothing — `cores/xroar.mk` has to be written from the `CORE_SRCS` list in its Makefile (~85 files plus its portalib). Covers CoCo, Dragon *and* MC-10. |
+  | `konsumer/xroar-libretro` | XRoar (C, GPL-3) | fetched, pinned, and `cores/xroar.mk` is written from the file lists in its Makefile (106 sources: core, portalib and glue), but the build needs `upstream/src/config.h`, which only its autoconf produces. It ships `configure.ac` only, so the image now carries autoconf/automake/pkg-config/autoconf-archive and `scripts/gen-core-inputs.sh` runs `autoreconf` + `configure`; that still does not emit `config.h`, which is the open blocker. Covers CoCo, Dragon *and* MC-10. |
 
   Neither is in `scripts/build-apps.sh` yet, so the shipped apps and the test
   matrix are unchanged.
