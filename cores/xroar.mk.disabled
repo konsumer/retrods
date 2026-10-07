@@ -1,5 +1,11 @@
 # SPDX-License-Identifier: Zlib
 #
+# DISABLED (.mk.disabled): the core list is built from cores/*.mk, and this one
+# cannot compile yet -- XRoar's sources need upstream/src/config.h, which only
+# its autoconf emits, and generating it is still unsolved (see README). Keeping
+# it in the build path breaks every build in the tree, so rename it back to
+# cores/xroar.mk once config.h can be produced; the source list below is
+# complete and taken from the port's own Makefile.
 # XRoar's emulation core plus the port's glue. Generated from the file
 # lists in third_party/xroar-libretro/Makefile: XRoar builds those from
 # its own configure step, so scripts/gen-core-mk.py cannot discover them.
