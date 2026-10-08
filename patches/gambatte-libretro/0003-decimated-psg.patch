@@ -1,0 +1,391 @@
+diff --git a/libgambatte/src/sound.cpp b/libgambatte/src/sound.cpp
+index ecd6832..03d953c 100644
+--- a/libgambatte/src/sound.cpp
++++ b/libgambatte/src/sound.cpp
+@@ -52,6 +52,13 @@ namespace gambatte
+       ,  rsum_(0x8000) // initialize to 0x8000 to prevent borrows from high word, xor away later
+       ,  enabled_(false)
+    {
++#ifdef GAMBATTE_DECIMATED_PSG
++      std::memset(&buckets_, 0, sizeof(buckets_));
++      phase_ = 0;
++      levelL_ = levelR_ = 0;
++      dcL_ = dcR_ = 0;
++      prevL_ = prevR_ = psg_dc_unprimed;
++#endif
+    }
+ 
+    void PSG::init(const bool cgb)
+@@ -96,8 +103,12 @@ namespace gambatte
+ 
+    void PSG::accumulateChannels(const unsigned long cycles)
+    {
++#ifdef GAMBATTE_DECIMATED_PSG
++      psg_buf_t const buf(&buckets_, phase_ + bufferPos_);
++#else
+       uint_least32_t *const buf = buffer_ + bufferPos_;
+       std::memset(buf, 0, cycles * sizeof(uint_least32_t));
++#endif
+       ch1_.update(buf, soVol_, cycles);
+       ch2_.update(buf, soVol_, cycles);
+       ch3_.update(buf, soVol_, cycles);
+@@ -125,6 +136,74 @@ namespace gambatte
+       lastUpdate_ = newCc - (oldCc - lastUpdate_);
+    }
+ 
++#ifdef GAMBATTE_DECIMATED_PSG
++   /* Read by the frontend after each fillBuffer(): how many output-rate
++    * stereo samples were written to the start of the buffer. */
++   std::size_t psg_decimated_samples;
++
++   size_t PSG::fillBuffer()
++   {
++      unsigned long const total = phase_ + bufferPos_;
++      unsigned long const full = total >> psg_decim_shift;
++      int16_t *out = reinterpret_cast<int16_t *>(buffer_);
++      PsgBuckets &b = buckets_;
++      int_least32_t l = levelL_, r = levelR_;
++      int_least32_t pl = prevL_, pr = prevR_, dl = dcL_, dr = dcR_;
++
++      for (unsigned long k = 0; k < full && k + 1 < PsgBuckets::max; ++k)
++      {
++         int_least32_t vl, vr;
++
++         l += b.stepL[k];
++         r += b.stepR[k];
++         vl = (l + b.partL[k]) >> psg_decim_shift;
++         vr = (r + b.partR[k]) >> psg_decim_shift;
++
++         /* Start from the first level, so the idle offset is not a click. */
++         if (pl == psg_dc_unprimed)
++         {
++            pl = vl;
++            pr = vr;
++         }
++
++         /* y += (x - x_prev) / 2 - y / 512, as the blipper does */
++         dl += (vl - pl) * 256 - (dl >> 9);
++         dr += (vr - pr) * 256 - (dr >> 9);
++         pl = vl;
++         pr = vr;
++         vl = dl >> 9;
++         vr = dr >> 9;
++
++         *out++ = static_cast<int16_t>(vl < -32768 ? -32768 : vl > 32767 ? 32767 : vl);
++         *out++ = static_cast<int16_t>(vr < -32768 ? -32768 : vr > 32767 ? 32767 : vr);
++      }
++      levelL_ = l;
++      levelR_ = r;
++      prevL_ = pl;
++      prevR_ = pr;
++      dcL_ = dl;
++      dcR_ = dr;
++      psg_decimated_samples = full;
++
++      /* The slot still being filled, and the step into the one after it,
++       * carry over to the start of the next buffer. */
++      if (full + 1 < PsgBuckets::max)
++      {
++         int_least32_t const sl0 = b.stepL[full], sr0 = b.stepR[full];
++         int_least32_t const pl0 = b.partL[full], pr0 = b.partR[full];
++         int_least32_t const sl1 = b.stepL[full + 1], sr1 = b.stepR[full + 1];
++         std::memset(&b, 0, sizeof(b));
++         b.stepL[0] = sl0; b.stepR[0] = sr0;
++         b.partL[0] = pl0; b.partR[0] = pr0;
++         b.stepL[1] = sl1; b.stepR[1] = sr1;
++      }
++      else
++         std::memset(&b, 0, sizeof(b));
++      phase_ = total & (psg_decim - 1);
++
++      return bufferPos_;
++   }
++#else
+    size_t PSG::fillBuffer()
+    {
+       uint_least32_t sum = rsum_;
+@@ -170,6 +249,7 @@ namespace gambatte
+ 
+       return bufferPos_;
+    }
++#endif
+ 
+ #ifdef WORDS_BIGENDIAN
+    static const unsigned long so1Mul = 0x00000001;
+diff --git a/libgambatte/src/sound.h b/libgambatte/src/sound.h
+index 1046011..de58dcf 100644
+--- a/libgambatte/src/sound.h
++++ b/libgambatte/src/sound.h
+@@ -86,6 +86,14 @@ private:
+ 	unsigned long soVol_;
+ 	uint_least32_t rsum_;
+ 	bool enabled_;
++#ifdef GAMBATTE_DECIMATED_PSG
++	PsgBuckets buckets_;
++	unsigned long phase_;      /* native samples into the current output slot */
++	int_least32_t levelL_, levelR_; /* running output level, x64 */
++	/* DC blocker, matching the blipper's leaky integrator: halve the signal and
++	 * remove DC (the channels idle at a large negative level). x512. */
++	int_least32_t prevL_, prevR_, dcL_, dcR_;
++#endif
+ 
+ 	void accumulateChannels(unsigned long cycles);
+ };
+diff --git a/libgambatte/src/sound/channel1.cpp b/libgambatte/src/sound/channel1.cpp
+index f0970b2..c86da74 100644
+--- a/libgambatte/src/sound/channel1.cpp
++++ b/libgambatte/src/sound/channel1.cpp
+@@ -214,7 +214,7 @@ void Channel1::loadState(SaveState const &state) {
+ 	master_ = state.spu.ch1.master;
+ }
+ 
+-void Channel1::update(uint_least32_t *buf, unsigned long const soBaseVol, unsigned long cycles) {
++void Channel1::update(psg_buf_t buf, unsigned long const soBaseVol, unsigned long cycles) {
+ 	unsigned long const outBase = envelopeUnit_.dacIsOn() ? soBaseVol & soMask_ : 0;
+ 	unsigned long const outLow = outBase * (0 - 15ul);
+ 	unsigned long const endCycles = cycleCounter_ + cycles;
+diff --git a/libgambatte/src/sound/channel1.h b/libgambatte/src/sound/channel1.h
+index bb54b13..250e906 100644
+--- a/libgambatte/src/sound/channel1.h
++++ b/libgambatte/src/sound/channel1.h
+@@ -22,6 +22,7 @@
+ #include "duty_unit.h"
+ #include "envelope_unit.h"
+ #include "gbint.h"
++#include "psg_buf.h"
+ #include "length_counter.h"
+ #include "master_disabler.h"
+ #include "static_output_tester.h"
+@@ -40,7 +41,7 @@ public:
+ 	void setNr4(unsigned data);
+ 	void setSo(unsigned long soMask);
+ 	bool isActive() const { return master_; }
+-	void update(uint_least32_t *buf, unsigned long soBaseVol, unsigned long cycles);
++	void update(psg_buf_t buf, unsigned long soBaseVol, unsigned long cycles);
+ 	void reset();
+ 	void init(bool cgb);
+ 	void saveState(SaveState &state);
+diff --git a/libgambatte/src/sound/channel2.cpp b/libgambatte/src/sound/channel2.cpp
+index f894e89..67de3ae 100644
+--- a/libgambatte/src/sound/channel2.cpp
++++ b/libgambatte/src/sound/channel2.cpp
+@@ -113,7 +113,7 @@ void Channel2::loadState(SaveState const &state) {
+ 	master_ = state.spu.ch2.master;
+ }
+ 
+-void Channel2::update(uint_least32_t *buf, unsigned long const soBaseVol, unsigned long cycles) {
++void Channel2::update(psg_buf_t buf, unsigned long const soBaseVol, unsigned long cycles) {
+ 	unsigned long const outBase = envelopeUnit_.dacIsOn() ? soBaseVol & soMask_ : 0;
+ 	unsigned long const outLow = outBase * (0 - 15ul);
+ 	unsigned long const endCycles = cycleCounter_ + cycles;
+diff --git a/libgambatte/src/sound/channel2.h b/libgambatte/src/sound/channel2.h
+index 49503a7..da64eab 100644
+--- a/libgambatte/src/sound/channel2.h
++++ b/libgambatte/src/sound/channel2.h
+@@ -22,6 +22,7 @@
+ #include "duty_unit.h"
+ #include "envelope_unit.h"
+ #include "gbint.h"
++#include "psg_buf.h"
+ #include "length_counter.h"
+ #include "static_output_tester.h"
+ 
+@@ -38,7 +39,7 @@ public:
+ 	void setNr4(unsigned data);
+ 	void setSo(unsigned long soMask);
+ 	bool isActive() const { return master_; }
+-	void update(uint_least32_t *buf, unsigned long soBaseVol, unsigned long cycles);
++	void update(psg_buf_t buf, unsigned long soBaseVol, unsigned long cycles);
+ 	void reset();
+ 	void saveState(SaveState &state);
+ 	void loadState(SaveState const &state);
+diff --git a/libgambatte/src/sound/channel3.cpp b/libgambatte/src/sound/channel3.cpp
+index 4797482..5473302 100644
+--- a/libgambatte/src/sound/channel3.cpp
++++ b/libgambatte/src/sound/channel3.cpp
+@@ -142,7 +142,7 @@ void Channel3::updateWaveCounter(unsigned long const cc) {
+ 	}
+ }
+ 
+-void Channel3::update(uint_least32_t *buf, unsigned long const soBaseVol, unsigned long cycles) {
++void Channel3::update(psg_buf_t buf, unsigned long const soBaseVol, unsigned long cycles) {
+ 	unsigned long const outBase = nr0_/* & 0x80*/ ? soBaseVol & soMask_ : 0;
+ 
+ 	if (outBase && rshift_ != 4) {
+diff --git a/libgambatte/src/sound/channel3.h b/libgambatte/src/sound/channel3.h
+index d6f444f..9cfa0ac 100644
+--- a/libgambatte/src/sound/channel3.h
++++ b/libgambatte/src/sound/channel3.h
+@@ -20,6 +20,7 @@
+ #define SOUND_CHANNEL3_H
+ 
+ #include "gbint.h"
++#include "psg_buf.h"
+ #include "length_counter.h"
+ #include "master_disabler.h"
+ 
+@@ -42,7 +43,7 @@ public:
+ 	void setNr3(unsigned data) { nr3_ = data; }
+ 	void setNr4(unsigned data);
+ 	void setSo(unsigned long soMask);
+-	void update(uint_least32_t *buf, unsigned long soBaseVol, unsigned long cycles);
++	void update(psg_buf_t buf, unsigned long soBaseVol, unsigned long cycles);
+ 
+ 	unsigned waveRamRead(unsigned index) const {
+ 		if (master_) {
+diff --git a/libgambatte/src/sound/channel4.cpp b/libgambatte/src/sound/channel4.cpp
+index 0fb15ac..9a3fa46 100644
+--- a/libgambatte/src/sound/channel4.cpp
++++ b/libgambatte/src/sound/channel4.cpp
+@@ -216,7 +216,7 @@ void Channel4::loadState(SaveState const &state) {
+ 	master_ = state.spu.ch4.master;
+ }
+ 
+-void Channel4::update(uint_least32_t *buf, unsigned long const soBaseVol, unsigned long cycles) {
++void Channel4::update(psg_buf_t buf, unsigned long const soBaseVol, unsigned long cycles) {
+ 	unsigned long const outBase = envelopeUnit_.dacIsOn() ? soBaseVol & soMask_ : 0;
+ 	unsigned long const outLow = outBase * (0 - 15ul);
+ 	unsigned long const endCycles = cycleCounter_ + cycles;
+diff --git a/libgambatte/src/sound/channel4.h b/libgambatte/src/sound/channel4.h
+index 9ec5cde..0431ec5 100644
+--- a/libgambatte/src/sound/channel4.h
++++ b/libgambatte/src/sound/channel4.h
+@@ -21,6 +21,7 @@
+ 
+ #include "envelope_unit.h"
+ #include "gbint.h"
++#include "psg_buf.h"
+ #include "length_counter.h"
+ #include "master_disabler.h"
+ #include "static_output_tester.h"
+@@ -38,7 +39,7 @@ public:
+ 	void setNr4(unsigned data);
+ 	void setSo(unsigned long soMask);
+ 	bool isActive() const { return master_; }
+-	void update(uint_least32_t *buf, unsigned long soBaseVol, unsigned long cycles);
++	void update(psg_buf_t buf, unsigned long soBaseVol, unsigned long cycles);
+ 	void reset();
+ 	void saveState(SaveState &state);
+ 	void loadState(SaveState const &state);
+diff --git a/libgambatte/src/sound/psg_buf.h b/libgambatte/src/sound/psg_buf.h
+new file mode 100644
+index 0000000..a355faf
+--- /dev/null
++++ b/libgambatte/src/sound/psg_buf.h
+@@ -0,0 +1,77 @@
++#ifndef PSG_BUF_H
++#define PSG_BUF_H
++
++#include "gbint.h"
++#include <cstddef>
++#include <stdint.h>
++
++/* The sound channels write *changes* of their output level into a buffer at
++ * the native rate (~2 MHz, 35112 slots per frame), which the PSG then
++ * integrates and the frontend resamples: three passes over every slot.
++ *
++ * GAMBATTE_DECIMATED_PSG: the channels write through psg_buf_t instead, a
++ * cursor that drops each change straight into the output-rate slot (1/64 of
++ * the native rate, ~32 kHz) it falls in, already weighted for a box average of
++ * those 64 native samples. The output then costs one pass over ~550 slots a
++ * frame, plus a few operations per level change, instead of touching every
++ * native sample. The channel code is unchanged: `*buf += d` and `buf += n`
++ * mean what they did. */
++
++#ifdef GAMBATTE_DECIMATED_PSG
++
++namespace gambatte {
++
++enum { psg_decim_shift = 6, psg_decim = 1 << psg_decim_shift };
++
++/* A level the channels cannot produce: "the DC blocker has not seen a sample". */
++int_least32_t const psg_dc_unprimed = -0x7FFFFFFF;
++
++struct PsgBuckets {
++	enum { max = 96 }; /* (native buffer size + phase) / 64, plus slack */
++	/* step[k]: level changes taking effect from slot k, x64.
++	 * part[k]: changes inside slot k, weighted by the share of it they cover. */
++	int_least32_t stepL[max], stepR[max], partL[max], partR[max];
++};
++
++class psg_buf_t {
++public:
++	struct Ref {
++		psg_buf_t &p;
++		void operator+=(uint_least32_t d) { p.add(d); }
++		void operator=(uint_least32_t d) { p.add(d); } /* buffer starts zeroed */
++	};
++
++	psg_buf_t(PsgBuckets *b, unsigned long pos) : b_(b), pos_(pos) {}
++	Ref operator*() { Ref r = { *this }; return r; }
++	psg_buf_t &operator+=(unsigned long n) { pos_ += n; return *this; }
++
++private:
++	PsgBuckets *b_;
++	unsigned long pos_;
++
++	/* d packs two signed 16-bit changes (left low, right high) with modular
++	 * arithmetic, as the channels compute them. */
++	void add(uint_least32_t d) {
++		int_least32_t const lo = static_cast<int16_t>(d & 0xFFFF);
++		int_least32_t const hi = static_cast<int16_t>((d - static_cast<uint_least32_t>(lo)) >> 16);
++		unsigned long const k = pos_ >> psg_decim_shift;
++		int_least32_t const w = psg_decim - static_cast<int_least32_t>(pos_ & (psg_decim - 1));
++
++		if (k + 1 >= PsgBuckets::max)
++			return;
++		b_->partL[k] += lo * w;
++		b_->partR[k] += hi * w;
++		b_->stepL[k + 1] += lo * psg_decim;
++		b_->stepR[k + 1] += hi * psg_decim;
++	}
++};
++
++}
++
++#else
++
++typedef uint_least32_t *psg_buf_t;
++
++#endif
++
++#endif
+--- a/libgambatte/libretro/libretro.cpp
++++ b/libgambatte/libretro/libretro.cpp
+@@ -299,15 +299,36 @@
+ 
+    audio_out_buffer_pos = 0;
+ }
++
++#ifdef GAMBATTE_DECIMATED_PSG
++/* GAMBATTE_DECIMATED_PSG (src/sound/psg_buf.h): the core already wrote
++ * output-rate (~32 kHz) stereo samples to the start of the buffer, so there is
++ * nothing to resample; append them. `frames` is the native count, which the
++ * caller still uses for timing. Nothing is pushed to the blipper, so its
++ * read_avail stays 0 and the blipper reads in retro_run() do nothing. */
++namespace gambatte { extern std::size_t psg_decimated_samples; }
+ 
+ static void blipper_renderaudio(const int16_t *samples, unsigned frames)
+ {
++   size_t n = gambatte::psg_decimated_samples;
++
++   (void)frames;
++   if (!n || !audio_out_buffer_resize(n))
++      return;
++
++   memcpy(audio_out_buffer + audio_out_buffer_pos, samples, n * 2 * sizeof(int16_t));
++   audio_out_buffer_pos += n << 1;
++}
++#else
++static void blipper_renderaudio(const int16_t *samples, unsigned frames)
++{
+    if (!frames)
+       return;
+ 
+    blipper_push_samples(resampler_l, samples + 0, frames, 2);
+    blipper_push_samples(resampler_r, samples + 1, frames, 2);
+ }
++#endif
+ 
+ static void audio_resampler_deinit(void)
+ {

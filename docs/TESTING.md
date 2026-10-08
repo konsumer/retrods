@@ -85,9 +85,9 @@ Select a set with `make CORES="..."`.
 
 Builds one app per core (`apps/retrods-<core>.nds`). Each is the same libretro
 host with exactly one core linked in, so the RAM budget applies per core instead
-of to the sum of all of them. The script builds DS mode first and falls back to
-DSi mode when a core does not fit 4 MiB. Current result: **28 apps built, none
-failed — 23 DS mode and 5 DSi mode (`genesis_plus_gx`, `fceumm`, `vice_x64`,
+of to the sum of all of them. Every app is now a DSi-mode build. When the script
+still built DS mode first with a DSi fallback, the result was **28 apps built,
+none failed — 23 DS mode and 5 DSi mode (`genesis_plus_gx`, `fceumm`, `vice_x64`,
 `beetle_supergrafx`, `vecx`).**
 
 Verified: `apps/retrods-quicknes.nds` and `apps/retrods-atari800.nds` were booted

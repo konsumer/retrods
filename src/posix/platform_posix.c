@@ -93,6 +93,24 @@ void rd_plat_deinit(void)
 static void write_ppm(const char *path, const void *data, unsigned width,
                       unsigned height, size_t pitch, enum rd_pixel_format fmt);
 
+void rd_plat_stats_begin(const char *label)
+{
+    (void)label;
+}
+
+void rd_plat_stats_flush(const char *path)
+{
+    (void)path;
+}
+
+void rd_plat_av_setup(unsigned max_width, unsigned max_height,
+                      unsigned sample_rate)
+{
+    (void)max_width;
+    (void)max_height;
+    (void)sample_rate;
+}
+
 void rd_plat_video(const void *data, unsigned width, unsigned height,
                    size_t pitch, enum rd_pixel_format fmt)
 {

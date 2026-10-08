@@ -7,6 +7,28 @@ on [DSpico](https://www.lnh-team.org/) flashcarts) via *file associations*, so
 that selecting a `.nes` / `.sms` / `.gb` file opens the right emulator core
 immediately. There is no built-in menu, file browser or settings UI.
 
+> [!WARNING]
+> **Too slow to be useful. This project is shelved.** On a DSi in DSi mode
+> (ARM9 at 133 MHz), with the host fixed and gambatte patched and tuned, an
+> original Game Boy game runs at full speed (Tetris: 11–13 ms a frame against
+> a 16.7 ms budget), but Game Boy Color games do not (Pokémon Gold: 23–38
+> fps). The Game Boy is about the lightest system here, so the heavier cores
+> have no realistic chance. Accurate libretro cores render video and generate
+> audio on the CPU; emulators written for the DS run at full speed by handing
+> both to the DS's own 2D and sound hardware, which a libretro core can't do
+> without being rewritten.
+>
+> Use emulators made for the DS instead, for example
+> [GameYob](https://github.com/Stewmath/GameYob) (GB/GBC), nesDS (NES), S8DS
+> (SMS/Game Gear), SNEmulDS (SNES), and
+> [wavemotion-dave](https://github.com/wavemotion-dave)'s StellaDS, A7800DS,
+> A5200DS, A8DS, ColecoDS, NINTV-DS, DS994a and SpeccySE. Pico Launcher's file
+> associations can launch any of them that take the ROM path in `argv[1]`.
+>
+> What is here still works as described below, and the DS host
+> (`src/nds/platform_nds.c`) and the measuring tools (bench mode, the melonDS
+> build) may be useful to anyone who tries again.
+
 ```
                         file association (one per extension)
 Pico Launcher  ---------------------------------------->  retrods-<core>.nds
@@ -94,8 +116,10 @@ associations pick between them:
 ```
 
 Each app is the same small libretro host plus exactly one core, so the RAM budget
-applies per core rather than to the sum. The script tries DS mode first and falls
-back to DSi mode when a core does not fit 4 MiB:
+applies per core rather than to the sum. Every app is built for DSi mode (16 MiB,
+and the ARM9 is switched to 133 MHz at startup); it still runs on a plain DS when a
+core fits 4 MiB, but slower. When this was a DS-mode build with a DSi fallback,
+the split was:
 
 | | cores | note |
 | --- | --- | --- |
@@ -197,12 +221,13 @@ larger than the whole machine — so **the core set is a build-time choice**:
 make    # default: testcore smsplus quicknes beetle_gba pokemini   (~3.4 MiB)
 make CORES="testcore smsplus gambatte beetle_gba pokemini"         # swap NES for GB/GBC
 make CORES="testcore smsplus snes9x2005 beetle_gba pokemini"       # swap NES for SNES
-make DSI=1 CORES="testcore smsplus quicknes beetle_gba gambatte snes9x2005 pokemini freechaf"  # DSi, 6.2 MiB
+make CORES="testcore smsplus quicknes beetle_gba gambatte snes9x2005 pokemini freechaf"  # 6.2 MiB, needs DSi mode
 make CORES="testcore atari800"                                     # Atari 8-bit on a DS
 ```
 
 The linker enforces the budget and fails with ``region `ewram' overflowed``.
-Roughly: a DS build holds ~3.1 MiB of cores, a DSi-mode build ~14 MiB.
+Roughly: a binary that must run on a plain DS holds ~3.1 MiB of cores, one run
+in DSi mode ~14 MiB.
 
 ## Building
 
@@ -218,10 +243,28 @@ so no host setup is required.
 ./scripts/build-apps.sh             # -> apps/retrods-<core>.nds
 ./scripts/gen-settings.py           # -> the associations that launch them
 
+CORES="gambatte" ./scripts/build-apps.sh   # just these cores
+
 # or one multi-core binary
-./scripts/build.sh                  # -> retrods.nds      (DS mode)
-./scripts/build.sh dsi              # -> retrods-dsi.nds  (DSi memory map)
+./scripts/build.sh                  # -> retrods.nds
 ```
+
+`make EMU=1` builds a DS-mode variant for [melonDS](https://melonds.kuribo64.net/)
+(the "melonDS DS" libretro core, with real DS BIOS and firmware and its homebrew
+SD card synced to a folder): it uses the game code melonDS treats as homebrew and
+reserves room for melonDS's DLDI driver, so the virtual SD card mounts. melonDS
+doesn't model the ARM9's caches, so its timings are only a rough guide, but it
+catches crashes and broken video or audio without a trip to the hardware.
+
+### Measuring
+
+Launched from Pico Launcher's app list with no ROM, an app runs **bench mode**: it
+plays each ROM listed in `bench.txt` next to it for 20 seconds with no input and
+without touching saves, then exits. Every run, bench or not, appends one line a
+second to `retrods.log` next to the app: frames per second, ms per frame in the
+core and in total, audio samples per second from the core, underruns and
+overruns, and how far the audio writer ran ahead of the play position. The same
+numbers are on the bottom screen.
 
 ### Deployment
 
@@ -325,16 +368,21 @@ appears on the DS's bottom screen. SRAM is written next to the ROM as
 
 | Mechanism | Status |
 | --------- | ------ |
-| **DSi RAM map** (15 MiB) | used: `make DSI=1` links with `dsi_arm9.specs`, so the core set and ROM buffer may exceed the 4 MiB DS limit **when the console runs the ROM in DSi mode** |
-| **DSi mode** (ARM9 @ 133 MHz, 16 MiB at runtime) | *not* enabled by the executable — the console/loader decides this. Not verified here; `dsi_arm9.specs` only changes the linker's memory map, it does not clock the CPU |
-| **2D engine hardware scaling** | not used yet: the core's frame is scaled on the CPU into the bitmap background. The DS bitmap BG supports affine scaling (`REG_BGxPA`…), which is the planned optimisation |
-| **ARM7** (33 MHz) | used: audio playback and keypad handling run through the ARM7 (libnds sound driver) |
+| **DSi RAM map** (15 MiB) | used: every build links with `dsi_arm9.specs` |
+| **DSi mode** (ARM9 @ 133 MHz) | used: `setCpuClock(true)` at startup when the loader starts the app in DSi mode, which Pico Launcher does. Measured at ~133 MHz on hardware |
+| **2D engine hardware scaling** | used: the frame goes into a 16-bit bitmap background and the affine unit scales and centres it, double-buffered and flipped at vblank |
+| **Native pixels** | used where a core is patched for it (`<core>_NDS_NATIVE_PIXELS`): the core emits opaque BGR555 and the frame is DMA'd to VRAM with no conversion |
+| **ARM vs Thumb** | cores build as ARM -O3 (`CORE_ISA`, `CORE_OPT`): on a DSi, gambatte ran Tetris in 11–13 ms a frame as ARM -O3, 13–16 as Thumb -O3, 15–17 as Thumb -O2 |
+| **ITCM / DTCM** | not used: the fast on-chip memories (32 KiB / 16 KiB) are what DS-native emulators put their CPU core in; gambatte's interpreter alone is larger than ITCM |
+| **ARM7** (33 MHz) | used for playback only: two looping hardware channels (left and right) over a ring buffer, with a hardware timer at the channel's rate as the play position |
 | **RP2040 on the DSpico cartridge** | exposes the SD card and USB over the cartridge bus; it is not a general-purpose accelerator for DS code |
 | GPU compute / DSP | none available on the DS |
 
 There is no general-purpose GPU compute on the DS, so "acceleration" here means
-the DSi's faster clock and extra RAM (both gated by booting in DSi mode), and
-offloading audio to the ARM7.
+the DSi's faster clock and extra RAM, the 2D engine, and the sound hardware. The
+big step this project could not take is the one DS-native emulators do: drawing
+the emulated machine's tiles and sprites with the DS's 2D engine and playing its
+sound channels on the DS's, instead of rendering pixels and samples on the CPU.
 
 ## Adding a core
 

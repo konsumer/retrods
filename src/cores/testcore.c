@@ -154,11 +154,18 @@ void retro_run(void)
         s_frame++;
     }
 
-    render();
     generate_audio();
 
+#ifdef TC_AUDIO_ONLY
+    // Audio path tests: skip drawing, so the frame costs next to nothing and
+    // any glitch in the output is the frontend's, not a slow frame's.
+    if (s_video)
+        s_video(NULL, TC_W, TC_H, TC_W * sizeof(uint16_t));
+#else
+    render();
     if (s_video)
         s_video(s_fb, TC_W, TC_H, TC_W * sizeof(uint16_t));
+#endif
 
     if (s_audio_batch)
         s_audio_batch(s_snd, frames);

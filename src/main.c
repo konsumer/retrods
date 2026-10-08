@@ -9,7 +9,63 @@
 #include "platform.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+
+// Bench mode: launched with no ROM (straight from Pico Launcher's app list), a
+// single-core app looks for bench.txt next to itself. Each line is a ROM path;
+// each ROM runs for BENCH_FRAMES with no input and its saves left alone, and
+// the per-second stats go to retrods.log in the same directory.
+#define BENCH_FRAMES (20 * 60)
+
+// "<dir of argv0>/<name>", or just <name> when argv0 has no directory.
+static void app_file(char *out, size_t n, const char *argv0, const char *name)
+{
+    const char *slash = argv0 ? strrchr(argv0, '/') : NULL;
+
+    if (slash)
+        snprintf(out, n, "%.*s/%s", (int)(slash - argv0), argv0, name);
+    else
+        snprintf(out, n, "%s", name);
+}
+
+static int run_bench(const struct rd_core *core, const char *list, const char *log)
+{
+    size_t size = 0;
+    char *text = rd_plat_read_file(list, &size);
+    char *line, *next;
+    int ran = 0;
+
+    if (!text)
+        return -1;
+
+    text = realloc(text, size + 1);
+    text[size] = '\0';
+
+    rd_host_max_frames = BENCH_FRAMES;
+    rd_host_no_save = true;
+
+    for (line = text; line && *line; line = next) {
+        next = strpbrk(line, "\r\n");
+        if (next) {
+            *next++ = '\0';
+            next += strspn(next, "\r\n");
+        }
+        if (!*line || *line == '#')
+            continue;
+
+        rd_plat_stats_begin(line);
+        rd_host_run(core, line);
+        rd_plat_stats_flush(log);
+        ran++;
+
+        if (rd_plat_quit_requested())
+            break;
+    }
+
+    free(text);
+    return ran;
+}
 
 int main(int argc, char **argv)
 {
@@ -45,6 +101,20 @@ int main(int argc, char **argv)
     if (!core && rd_registry_at(0) && !rd_registry_at(1))
         core = rd_registry_at(0);
 
+    if (!rom && core) {
+        char list[256], log[256];
+
+        app_file(list, sizeof(list), argc > 0 ? argv[0] : NULL, "bench.txt");
+        app_file(log, sizeof(log), argc > 0 ? argv[0] : NULL, "retrods.log");
+        if (rd_plat_file_exists(list)) {
+            rd_plat_log("bench mode");
+            rc = run_bench(core, list, log);
+            rd_plat_log("bench done");
+            rd_plat_deinit();
+            return rc > 0 ? 0 : 1;
+        }
+    }
+
     if (!rom || !core) {
         char line[128];
 
@@ -71,7 +141,14 @@ int main(int argc, char **argv)
         return 2;
     }
 
-    rc = rd_host_run(core, rom);
+    {
+        char log[256];
+
+        app_file(log, sizeof(log), argc > 0 ? argv[0] : NULL, "retrods.log");
+        rd_plat_stats_begin(rom);
+        rc = rd_host_run(core, rom);
+        rd_plat_stats_flush(log);
+    }
 
     rd_plat_deinit();
     return rc;

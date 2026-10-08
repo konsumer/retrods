@@ -1,0 +1,36 @@
+diff --git a/libgambatte/src/video_libretro.cpp b/libgambatte/src/video_libretro.cpp
+index 02c140e..0d03142 100644
+--- a/libgambatte/src/video_libretro.cpp
++++ b/libgambatte/src/video_libretro.cpp
+@@ -34,11 +34,21 @@
+ #define GBC_CC_BR  -0.06f
+ #define GBC_CC_BG  0.21f
+ 
++/* VIDEO_ABGR1555_OPAQUE: set bit 15 on every colour, so the frame is already
++ * in the Nintendo DS's native bitmap format (where bit 15 means opaque) and
++ * the frontend can DMA it to VRAM as is. Every palette entry passes through
++ * one of the two functions below, so the pixels inherit it. */
++#ifdef VIDEO_ABGR1555_OPAQUE
++#define VIDEO_PIXEL_OPAQUE 0x8000
++#else
++#define VIDEO_PIXEL_OPAQUE 0
++#endif
++
+ namespace gambatte
+ {
+    void LCD::setDmgPaletteColor(const unsigned index, const video_pixel_t rgb32)
+    {
+-      dmgColorsRgb32_[index] = rgb32;
++      dmgColorsRgb32_[index] = rgb32 | VIDEO_PIXEL_OPAQUE;
+    }
+ 
+    void LCD::setDmgPalette(video_pixel_t *const palette, const video_pixel_t *const dmgColors, const unsigned data)
+@@ -309,7 +319,7 @@ namespace gambatte
+ #ifdef VIDEO_RGB565
+       return rFinal << 11 | gFinal << 6 | bFinal;
+ #elif defined(VIDEO_ABGR1555)
+-      return bFinal << 10 | gFinal << 5 | rFinal;
++      return VIDEO_PIXEL_OPAQUE | bFinal << 10 | gFinal << 5 | rFinal;
+ #else
+       return rFinal << 16 | gFinal << 8 | bFinal;
+ #endif

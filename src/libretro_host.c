@@ -8,7 +8,6 @@
 
 #include <stdarg.h>
 #include <stdio.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -18,6 +17,9 @@ static enum rd_pixel_format g_pixfmt = RD_PIXEL_0RGB1555;
 static unsigned g_sample_rate = 44100;
 static unsigned g_frames;             /* frames handed to the platform */
 static bool g_shutdown;
+
+unsigned rd_host_max_frames;
+bool rd_host_no_save;
 
 
 
@@ -139,6 +141,12 @@ static bool env_cb(unsigned cmd, void *data)
             *f == RETRO_PIXEL_FORMAT_RGB565 ||
             *f == RETRO_PIXEL_FORMAT_XRGB8888) {
             g_pixfmt = (enum rd_pixel_format)*f;
+#ifdef RD_NATIVE_PIXELS
+            /* The core is patched to emit the DS's own format, whatever 16-bit
+               format it names here (see <core>_NDS_NATIVE_PIXELS). */
+            if (*f != RETRO_PIXEL_FORMAT_XRGB8888)
+                g_pixfmt = RD_PIXEL_NATIVE;
+#endif
             return true;
         }
         return false;
@@ -509,9 +517,18 @@ int rd_host_run(const struct rd_core *core, const char *rom_path)
           av_info.geometry.base_width, av_info.geometry.base_height,
           av_info.timing.fps, g_sample_rate);
 
+    /* Some cores leave max_* at zero; the base geometry is the best guess. */
+    rd_plat_av_setup(av_info.geometry.max_width ? av_info.geometry.max_width
+                                                : av_info.geometry.base_width,
+                     av_info.geometry.max_height ? av_info.geometry.max_height
+                                                 : av_info.geometry.base_height,
+                     g_sample_rate);
+
     load_sram();
 
-    while (!g_shutdown && !rd_plat_quit_requested()) {
+    for (unsigned n = 0; !g_shutdown && !rd_plat_quit_requested(); n++) {
+        if (rd_host_max_frames && n >= rd_host_max_frames)
+            break;
         core->run();
         /* The core polls input once per frame; read the hotkeys from that same
            state, so a press cannot fall between two polls. */
@@ -521,7 +538,8 @@ int rd_host_run(const struct rd_core *core, const char *rom_path)
             rd_plat_wait_frame();
     }
 
-    save_sram();
+    if (!rd_host_no_save)
+        save_sram();
 
     core->unload_game();
     core->deinit();

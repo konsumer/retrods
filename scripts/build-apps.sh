@@ -7,9 +7,9 @@
 # small enough to fit a DS.
 #
 #   scripts/build-apps.sh [output-dir]        # default: apps/
+#   CORES="gambatte" scripts/build-apps.sh    # just these cores
 #
-# Each core is built for DS mode when it fits the 4 MiB budget, and falls back to
-# a DSi-mode build (16 MiB) when it does not.
+# Every app is a DSi-mode build (16 MiB RAM, 133 MHz).
 
 set -eu
 
@@ -17,7 +17,7 @@ cd "$(dirname "$0")/.."
 
 OUT=${1:-apps}
 
-CORES=$(ls cores/*.mk | grep -v 'extra\.mk' | xargs -n1 basename | sed 's/\.mk$//' | tr '\n' ' ')
+CORES=${CORES:-$(ls cores/*.mk | grep -v 'extra\.mk' | xargs -n1 basename | sed 's/\.mk$//' | tr '\n' ' ')}
 
 docker build -q -t retrods-build . > /dev/null
 
@@ -35,13 +35,8 @@ for core in $CORES; do
     app="retrods-$core"
     title=$(printf '%s' "$core" | cut -c1-12)
 
-    if make -j"$(nproc)" CORES="$core" NAME="$app" BUILD="build-apps/$core" \
+    if ! make -j"$(nproc)" CORES="$core" NAME="$app" BUILD="build-apps/$core" \
             GAME_TITLE="$title" > /tmp/app.log 2>&1; then
-        mode=DS
-    elif make -j"$(nproc)" DSI=1 CORES="$core" NAME="$app" BUILD="build-apps/$core-dsi" \
-            GAME_TITLE="$title" > /tmp/app.log 2>&1; then
-        mode=DSi
-    else
         printf '%-18s FAILED\n' "$core"
         tail -3 /tmp/app.log | sed 's/^/                     /'
         failed=$((failed + 1))
@@ -49,7 +44,7 @@ for core in $CORES; do
     fi
 
     mv "$app.nds" "$OUT/"
-    printf '%-18s %-4s %8s  %s\n' "$core" "$mode" "$(stat -c%s "$OUT/$app.nds")" "$OUT/$app.nds"
+    printf '%-18s %8s  %s\n' "$core" "$(stat -c%s "$OUT/$app.nds")" "$OUT/$app.nds"
     made=$((made + 1))
 done
 
