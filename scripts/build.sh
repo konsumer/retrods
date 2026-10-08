@@ -3,8 +3,7 @@
 #
 # Build retrods for the Nintendo DS with the BlocksDS Docker image.
 #
-#   ./scripts/build.sh          -> retrods.nds       (DS mode)
-#   ./scripts/build.sh dsi      -> retrods-dsi.nds   (DSi mode, 133 MHz)
+#   ./scripts/build.sh          -> retrods.nds       (DSi mode, 133 MHz)
 
 set -eu
 
@@ -17,18 +16,6 @@ if [ ! -d third_party/smsplus/.git ]; then
     ./scripts/fetch-cores.sh
 fi
 
-MAKE_ARGS=""
-case "${1:-}" in
-    "")
-        ;;
-    dsi|DSI)
-        MAKE_ARGS="DSI=1"
-        ;;
-    *)
-        echo "usage: build.sh [dsi]" >&2
-        exit 2
-        ;;
-esac
 
 # Run as the invoking user so build artifacts aren't root-owned on the host.
 USER_ARGS=""
@@ -39,6 +26,6 @@ fi
 # shellcheck disable=SC2086
 docker run --rm $USER_ARGS \
     -v "$(pwd):/work" -w /work --entrypoint bash "$IMAGE" \
-    -c "make -j\$(nproc) $MAKE_ARGS"
+    -c "make -j\$(nproc)"
 
 ls -l ./*.nds

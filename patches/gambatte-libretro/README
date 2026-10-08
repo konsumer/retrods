@@ -10,3 +10,25 @@ fails to link once net_serial.cpp is dropped (netplay needs BSD sockets, which
 the DS does not have).
 
 Applied with: patch -p1 < patches/gambatte-libretro/0001-netplay-optional.patch
+
+0002-ds-native-pixels.patch
+
+Add VIDEO_ABGR1555_OPAQUE. The core already has a VIDEO_ABGR1555 output mode
+(written for the PS2), which is the DS's own pixel layout except that a DS
+bitmap background treats bit 15 as "opaque". With this define every palette
+colour carries that bit, so retrods can DMA the frame straight into VRAM with
+no per-pixel conversion.
+
+0003-decimated-psg.patch
+
+Add GAMBATTE_DECIMATED_PSG. The sound channels write their level changes into
+a buffer at the native rate (~2 MHz, 35112 slots a frame), which the core then
+integrates and the frontend resamples: three passes over every slot, which on
+the DS's slow main RAM cost about as much as emulating the rest of the machine.
+With this define the channels write through a small cursor type (src/sound/
+psg_buf.h) that drops each change straight into the ~32 kHz output slot it
+falls in, weighted for a box average of those 64 native samples, and the
+blipper is bypassed. A leaky integrator matching the blipper's removes the
+channels' DC offset. On the host the output correlates with the original at
+0.999 (about 1.33x louder); on a DSi it took Tetris from 45 ms to 11-13 ms a
+frame.

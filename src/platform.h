@@ -16,11 +16,21 @@ enum rd_pixel_format {
     RD_PIXEL_0RGB1555 = 0,
     RD_PIXEL_XRGB8888 = 1,
     RD_PIXEL_RGB565   = 2,
+    // Not a libretro format: opaque BGR555 (bit 15 set), the DS's own bitmap
+    // format. Cores patched to emit it (<core>_NDS_NATIVE_PIXELS) are DMA'd
+    // to VRAM with no conversion.
+    RD_PIXEL_NATIVE   = 100,
 };
 
 // One-time per-process setup. Returns false on a fatal error.
 bool rd_plat_init(void);
 void rd_plat_deinit(void);
+
+// Called once the game is loaded, before the first frame: the largest frame
+// the core will produce and its audio rate, so video memory and the audio
+// stream can be set up once instead of being re-checked every frame.
+void rd_plat_av_setup(unsigned max_width, unsigned max_height,
+                      unsigned sample_rate);
 
 // Present one emulator frame. `data` may be NULL when the core reports a
 // duplicate of the previous frame.
@@ -48,6 +58,12 @@ void rd_plat_wait_frame(void);
 bool rd_plat_quit_requested(void);
 
 void rd_plat_log(const char *s);
+
+// Performance stats. The DS backend measures once a second and keeps the lines
+// in memory; flushing appends them to a file, so a run can be read back from
+// the SD card afterwards instead of off the screen. `label` starts a section.
+void rd_plat_stats_begin(const char *label);
+void rd_plat_stats_flush(const char *path);
 void rd_plat_status(const char *s);
 
 // Called before the frontend gives up (fatal error) or after a normal exit.
